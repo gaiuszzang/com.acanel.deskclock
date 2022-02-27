@@ -1,11 +1,15 @@
 package com.acanel.deskclock.ui.screen
 
 import android.view.MotionEvent
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -14,6 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -24,16 +29,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.acanel.deskclock.R
 import com.acanel.deskclock.entity.ClockTimeAdjustLocationVO
 import com.acanel.deskclock.entity.ClockTimeDisplayOptionVO
 import com.acanel.deskclock.entity.ClockTimeVO
 import com.acanel.deskclock.ui.LocalNavAction
 import com.acanel.deskclock.ui.theme.DeskClockTheme
+import com.acanel.deskclock.ui.theme.MenuBackColor
+import com.acanel.deskclock.ui.theme.White
 import com.acanel.deskclock.ui.viewmodel.ClockViewModel
-import com.acanel.groovin.composable.KeepScreenOn
-import com.acanel.groovin.composable.ScreenImmersive
-import com.acanel.groovin.composable.ScreenLandscape
-import com.acanel.groovin.composable.GroovinUrlCrossFadeImage
+import com.acanel.groovin.composable.*
 
 @Composable
 fun ClockScreen(clockViewModel: ClockViewModel = hiltViewModel()) {
@@ -47,8 +52,8 @@ fun ClockScreen(clockViewModel: ClockViewModel = hiltViewModel()) {
                         clockViewModel.clockTimeDisplayOption.value,
                         clockViewModel.clockTimeAdjustLocation.value,
                         clockViewModel.backImageUrl.value,
-                        clockViewModel.showSettingUI.value,
-                        { clockViewModel.toggleSettingUI() },
+                        clockViewModel.showTopMenu.value,
+                        { clockViewModel.toggleShowTopMenu() },
                         navAction.settingAction,
                         navAction.finishAction
                     )
@@ -65,10 +70,10 @@ fun ClockScreenIn(
     clockTimeDisplayOption: ClockTimeDisplayOptionVO,
     clockTimeAdjustLocationVO: ClockTimeAdjustLocationVO,
     backImageUrl: String?,
-    showSettingUI: Boolean = false,
+    showTopMenu: Boolean = false,
     screenTouchListener: (() -> Unit)? = null,
-    settingButtonClickListener: (() -> Unit)? = null,
-    closeButtonClickListener: (() -> Unit)? = null
+    settingAction: (() -> Unit)? = null,
+    finishAction: (() -> Unit)? = null
 ) {
     val animatedVerticalBias by animateFloatAsState(
         targetValue = clockTimeAdjustLocationVO.verticalBias,
@@ -82,7 +87,7 @@ fun ClockScreenIn(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        val (backImage, settingButton, exitButton, timeText) = createRefs()
+        val (backImage, settingMenu, timeText) = createRefs()
         if (backImageUrl != null) {
             GroovinUrlCrossFadeImage(
                 url = backImageUrl,
@@ -120,53 +125,37 @@ fun ClockScreenIn(
             )
         }
 
-        if (clockTime != null) {
-            ClockTime(
-                clockTime = clockTime,
-                clockTimeDisplayOption = clockTimeDisplayOption,
-                modifier = Modifier
-                    .constrainAs(timeText) {
-                        centerVerticallyTo(parent, animatedVerticalBias)
-                        centerHorizontallyTo(parent, animatedHorizontalBias)
-                    }
-                    .height(IntrinsicSize.Max)
-                    .width(IntrinsicSize.Max)
-            )
-        }
-
-        if (showSettingUI) {
-            Button(
-                modifier = Modifier
-                    .constrainAs(settingButton) {
-                        top.linkTo(parent.top)
-                        start.linkTo(parent.start)
-                    },
-                onClick = {
-                    settingButtonClickListener?.invoke()
+        ClockTime(
+            clockTime = clockTime,
+            clockTimeDisplayOption = clockTimeDisplayOption,
+            modifier = Modifier
+                .constrainAs(timeText) {
+                    centerVerticallyTo(parent, animatedVerticalBias)
+                    centerHorizontallyTo(parent, animatedHorizontalBias)
                 }
-            ) {
-                Text(text = "Setting")
-            }
-            Button(
-                modifier = Modifier
-                    .constrainAs(exitButton) {
-                        top.linkTo(parent.top)
-                        end.linkTo(parent.end)
-                    },
-                onClick = { closeButtonClickListener?.invoke() }
-            ) {
-                Text(text = "X")
-            }
-        }
+                .height(IntrinsicSize.Max)
+                .width(IntrinsicSize.Max)
+        )
+
+        ClockTopMenu(
+            modifier = Modifier
+                .constrainAs(settingMenu) {
+                    top.linkTo(parent.top)
+                },
+            isShow = showTopMenu,
+            settingAction = settingAction,
+            finishAction = finishAction
+        )
     }
 }
 
 @Composable
 private fun ClockTime(
-    clockTime: ClockTimeVO,
+    clockTime: ClockTimeVO?,
     clockTimeDisplayOption : ClockTimeDisplayOptionVO,
     modifier: Modifier = Modifier
 ) {
+    if (clockTime == null) return
     Column(
         modifier = modifier
     ) {
@@ -214,6 +203,57 @@ private fun ClockTime(
     }
 }
 
+@Composable
+private fun ClockTopMenu(
+    modifier: Modifier = Modifier,
+    isShow: Boolean = false,
+    settingAction: (() -> Unit)? = null,
+    finishAction: (() -> Unit)? = null
+) {
+    AnimatedVisibility(
+        visible = isShow,
+        enter = slideInVertically(
+            initialOffsetY = { fullHeight -> -fullHeight },
+            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { fullHeight -> -fullHeight },
+            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
+        )
+    ) {
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = MenuBackColor, shape = RoundedCornerShape(0.dp, 0.dp, 24.dp, 24.dp))
+                .padding(8.dp)
+                .then(modifier)
+        ) {
+            val (settingButton, exitButton) = createRefs()
+            IconButton(
+                modifier = Modifier
+                    .constrainAs(settingButton) {
+                        top.linkTo(parent.top)
+                        start.linkTo(parent.start)
+                    },
+                onClick = {
+                    settingAction?.invoke()
+                }) {
+                Icon(painterResource(id = R.drawable.ic_settings), "Settings", tint = White, modifier = Modifier.padding(6.dp))
+            }
+
+            IconButton(
+                modifier = Modifier
+                    .constrainAs(exitButton) {
+                        top.linkTo(parent.top)
+                        end.linkTo(parent.end)
+                    },
+                onClick = { finishAction?.invoke() }) {
+                Icon(painterResource(id = R.drawable.ic_close), "Close", tint = White, modifier = Modifier.padding(6.dp))
+            }
+        }
+    }
+}
+
 @Preview(widthDp = 640, heightDp = 360)
 @Composable
 fun PreviewClockScreen() {
@@ -236,6 +276,20 @@ fun PreviewClockScreen2() {
             ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
             ClockTimeAdjustLocationVO(0.5f, 0.5f),
             null
+        )
+    }
+}
+
+@Preview(widthDp = 640, heightDp = 360)
+@Composable
+fun PreviewClockScreen3() {
+    DeskClockTheme {
+        ClockScreenIn(
+            ClockTimeVO("10월 14일 목요일", "2:15", "AM"),
+            ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
+            ClockTimeAdjustLocationVO(0.5f, 0.5f),
+            null,
+            showTopMenu = true
         )
     }
 }

@@ -35,13 +35,14 @@ private val DarkColorPalette = darkColors(
 )
 
 private val GroovinClockColorPalette = lightColors(
-    primary = Color.LightGray,
-    primaryVariant = Color.Gray,
-    secondary = Color.Blue,
+    primary = Primary,
+    primaryVariant = PrimaryVariant,
+    onPrimary = OnPrimary,
+    secondary = Secondary,
+    secondaryVariant = SecondaryVariant,
+    onSecondary = OnSecondary,
     background = Color.Black,
     surface = Color.Black,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
     onBackground = Color.White,
     onSurface = Color.White
 )

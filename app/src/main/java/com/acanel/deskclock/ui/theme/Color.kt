@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 //Basic Colors
 val White = Color(0xFFFFFFFF)
 val Black = Color(0xFF000000)
+val MenuBackColor = Color(0x40000000)
 
 //Light Theme
 val Primary = Color(0xFF3050F0)

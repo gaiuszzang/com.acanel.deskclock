@@ -111,7 +111,7 @@ fun SettingTitle(menu: SettingMenu.SettingTitle) {
     ) {
         Text(
             text = menu.title,
-            color = White,
+            color = Black,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold
         )
