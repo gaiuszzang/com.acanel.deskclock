@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.acanel.deskclock.usecase.ClockSettingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,10 +15,10 @@ import javax.inject.Inject
 class SettingViewModel @Inject constructor(
     private val clockSettingUseCase: ClockSettingUseCase
 ) : ViewModel() {
+
     val uiState = mutableStateOf<SettingScreenState>(SettingScreenState.Init())
 
     private val menuList = mutableListOf<SettingMenu>()
-    private val menuEventMap = mutableMapOf<String, SettingMenuAction>()
 
     init {
         initMenuList()
@@ -41,6 +41,21 @@ class SettingViewModel @Inject constructor(
             title = "Use the Background Image",
             flow = clockSettingUseCase.useClockBackgroundImage()
         ) { clockSettingUseCase.setUseClockBackgroundImage(it) }
+        addRadioButtonListDialogMenu(
+            key = SETTING_KEY_CLOCK_TOPIC_LIST,
+            title = "Clock Background Image Topics",
+            defaultValue = "",
+            itemToValue = { it.title ?: "" },
+            selectedItemFlow = clockSettingUseCase.getClockBackgroundImageTopicFlow(),
+            dialogTitle = "Clock Background Image Topic List",
+            dialogContentLoadListener = {
+                val list = clockSettingUseCase.getClockBackgroundImageTopicList()
+                val selectedItem = clockSettingUseCase.getClockBackgroundImageTopicFlow().first()
+                val selectedIndex = list.indexOfFirst { it.slug == selectedItem.slug }
+                RadioButtonListDialogContent.Loaded(list, selectedIndex)
+            },
+            selectedItemListener = { clockSettingUseCase.setClockBackgroundImageTopic(it) }
+        )
         addIntSlideDialogMenu(
             key = SETTING_KEY_CLOCK_FONT_SIZE_LEVEL,
             title = "Clock Font Size",
@@ -72,86 +87,63 @@ class SettingViewModel @Inject constructor(
         }
     }
 
-    fun onClickMenu(menu: SettingMenu) {
-        if (menu is SettingMenu.SettingOnOffMenu) {
-            when (val menuEvent = menuEventMap[menu.key]) {
-                is SettingMenuAction.SettingOnOffMenuClickAction -> {
-                    viewModelScope.launch {
-                        menuEvent.onClickAction(!menu.isOn)
-                    }
-                }
-                else -> {
-                    //nothing to do
-                }
-            }
-        }
-    }
-
-    fun onIntSlideValueChanged(menu: SettingMenu, value: Int) {
-        if (menu is SettingMenu.SettingIntSlideDialogMenu) {
-            when (val menuEvent = menuEventMap[menu.key]) {
-                is SettingMenuAction.SettingIntValueChangeAction -> {
-                    viewModelScope.launch {
-                        menuEvent.onValueChangedAction(value)
-                    }
-                }
-                else -> { /* nothing to do */ }
-            }
-        }
-    }
-
-    fun onColorPickerChanged(menu: SettingMenu, color: ULong) {
-        if (menu is SettingMenu.SettingColorPickerDialogMenu) {
-            when (val menuEvent = menuEventMap[menu.key]) {
-                is SettingMenuAction.SettingULongValueChangeAction -> {
-                    viewModelScope.launch {
-                        menuEvent.onValueChangedAction(color)
-                    }
-                }
-                else -> { /* nothing to do */ }
-            }
-        }
-    }
-
     private fun addTitleMenu(title: String) {
         menuList.add(SettingMenu.SettingTitle(title))
     }
 
-    private fun addOnOffMenu(key: String, title: String, flow: Flow<Boolean>, setMethod: suspend (Boolean) -> Unit) {
-        menuList.add(SettingMenu.SettingOnOffMenu(key, title, false))
-        menuEventMap[key] = SettingMenuAction.SettingOnOffMenuClickAction(setMethod)
+    private fun addOnOffMenu(key: String, title: String, flow: Flow<Boolean>, updateCallback: suspend (Boolean) -> Unit) {
+        menuList.add(SettingMenu.SettingOnOffMenu(key, title, false, updateCallback))
         viewModelScope.launch {
             flow.collect { value ->
                 val index = menuList.indexOfFirst { (it is SettingMenu.SettingOnOffMenu) && (it.key == key) }
-                menuList[index] = SettingMenu.SettingOnOffMenu(key, title, value)
+                menuList[index] = SettingMenu.SettingOnOffMenu(key, title, value, updateCallback)
                 emitMenuList()
             }
         }
     }
 
-    private fun addIntSlideDialogMenu(key: String, title: String, dialogTitle: String, defaultValue: Int, valueRange: ClosedRange<Int>, flow: Flow<Int>, setMethod: suspend (Int) -> Unit) {
-        menuList.add(SettingMenu.SettingIntSlideDialogMenu(key, title, dialogTitle, defaultValue, valueRange))
-        menuEventMap[key] = SettingMenuAction.SettingIntValueChangeAction(setMethod)
+    private fun addIntSlideDialogMenu(key: String, title: String, dialogTitle: String, defaultValue: Int, valueRange: ClosedRange<Int>, flow: Flow<Int>, updateCallback: suspend (Int) -> Unit) {
+        menuList.add(SettingMenu.SettingIntSlideDialogMenu(key, title, dialogTitle, defaultValue, valueRange, updateCallback))
         viewModelScope.launch {
             flow.collect { value ->
-                val index = menuList.indexOfFirst { (it is SettingMenu.SettingIntSlideDialogMenu) && (it.key == key)}
-                menuList[index] = SettingMenu.SettingIntSlideDialogMenu(key, title, dialogTitle, value, valueRange)
+                val index = menuList.indexOfFirst { (it is SettingMenu.SettingIntSlideDialogMenu) && (it.key == key) }
+                menuList[index] = SettingMenu.SettingIntSlideDialogMenu(key, title, dialogTitle, value, valueRange, updateCallback)
                 emitMenuList()
             }
         }
     }
 
-    private fun addColorPickerDialogMenu(key: String, title: String, dialogTitle: String, defaultColor: ULong, flow: Flow<ULong>, setMethod: suspend (ULong) -> Unit) {
-        menuList.add(SettingMenu.SettingColorPickerDialogMenu(key, title, dialogTitle, defaultColor))
-        menuEventMap[key] = SettingMenuAction.SettingULongValueChangeAction(setMethod)
+    private fun addColorPickerDialogMenu(key: String, title: String, dialogTitle: String, defaultColor: ULong, flow: Flow<ULong>, updateCallback: suspend (ULong) -> Unit) {
+        menuList.add(SettingMenu.SettingColorPickerDialogMenu(key, title, dialogTitle, defaultColor, updateCallback))
         viewModelScope.launch {
             flow.collect { value ->
-                val index = menuList.indexOfFirst { (it is SettingMenu.SettingColorPickerDialogMenu) && (it.key == key)}
-                menuList[index] = SettingMenu.SettingColorPickerDialogMenu(key, title, dialogTitle, value)
+                val index = menuList.indexOfFirst { (it is SettingMenu.SettingColorPickerDialogMenu) && (it.key == key) }
+                menuList[index] = SettingMenu.SettingColorPickerDialogMenu(key, title, dialogTitle, value, updateCallback)
                 emitMenuList()
             }
         }
 
+    }
+
+    private fun <T> addRadioButtonListDialogMenu(
+        key: String,
+        title: String,
+        defaultValue: String,
+        itemToValue: (T) -> String,
+        dialogTitle: String,
+        dialogContentLoadListener: suspend () -> RadioButtonListDialogContent.Loaded<T>,
+        selectedItemListener: suspend (T) -> Unit,
+        selectedItemFlow: Flow<T>
+    ) {
+        menuList.add(SettingMenu.SettingRadioButtonListDialogMenu(key, title, defaultValue, itemToValue, dialogTitle, dialogContentLoadListener, selectedItemListener))
+        viewModelScope.launch {
+            selectedItemFlow.collect { selectedItem ->
+                val index = menuList.indexOfFirst { (it is SettingMenu.SettingRadioButtonListDialogMenu<*>) && (it.key == key) }
+                val value = itemToValue(selectedItem)
+                menuList[index] = SettingMenu.SettingRadioButtonListDialogMenu(key, title, value, itemToValue, dialogTitle, dialogContentLoadListener, selectedItemListener)
+                emitMenuList()
+            }
+        }
     }
 
     private fun emitMenuList() {
@@ -165,32 +157,51 @@ class SettingViewModel @Inject constructor(
         const val SETTING_KEY_CLOCK_FONT_SIZE_LEVEL = "ClockFontSizeLevel"
         const val SETTING_KEY_CLOCK_FONT_SHADOW_SIZE_LEVEL = "ClockFontShadowSizeLevel"
         const val SETTING_KEY_CLOCK_FONT_COLOR = "ClockFontColor"
+        const val SETTING_KEY_CLOCK_TOPIC_LIST = "ClockTopicList"
     }
 }
 
 
 sealed interface SettingMenu {
     data class SettingTitle(val title: String): SettingMenu
-    data class SettingOnOffMenu(val key: String, val title: String, val isOn: Boolean): SettingMenu
+    data class SettingOnOffMenu(
+        val key: String,
+        val title: String,
+        val isOn: Boolean,
+        val updateCallback: suspend (Boolean) -> Unit
+    ): SettingMenu
     data class SettingIntSlideDialogMenu(
         val key: String,
         val title: String,
         val dialogTitle: String,
         val value: Int,
-        val range: ClosedRange<Int>
+        val range: ClosedRange<Int>,
+        val updateCallback: suspend (Int) -> Unit
     ): SettingMenu
     data class SettingColorPickerDialogMenu(
         val key: String,
         val title: String,
         val dialogTitle: String,
-        val color: ULong
+        val color: ULong,
+        val updateCallback: suspend (ULong) -> Unit
+    ): SettingMenu
+    data class SettingRadioButtonListDialogMenu<T>(
+        val key: String,
+        val title: String,
+        val value: String,
+        val itemToValue: (T) -> String,
+        val dialogTitle: String,
+        val dialogContentLoadListener: suspend () -> RadioButtonListDialogContent.Loaded<T>,
+        val updateCallback: suspend (T) -> Unit
     ): SettingMenu
 }
 
-sealed interface SettingMenuAction {
-    data class SettingOnOffMenuClickAction(val onClickAction: suspend (Boolean) -> Unit): SettingMenuAction
-    data class SettingIntValueChangeAction(val onValueChangedAction: suspend (Int) -> Unit): SettingMenuAction
-    data class SettingULongValueChangeAction(val onValueChangedAction: suspend (ULong) -> Unit): SettingMenuAction
+sealed interface RadioButtonListDialogContent<T> {
+    class Init<T>: RadioButtonListDialogContent<T>
+    class Loaded<T>(
+        val content: List<T>,
+        val selectedIndex: Int
+    ): RadioButtonListDialogContent<T>
 }
 
 sealed interface SettingScreenState {

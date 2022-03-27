@@ -1,8 +1,14 @@
 package com.acanel.deskclock.usecase
 
 import com.acanel.deskclock.entity.ClockTimeDisplayOptionVO
+import com.acanel.deskclock.entity.UnsplashTopicVO
 import com.acanel.deskclock.repo.ClockSettingRepository
+import com.acanel.deskclock.repo.impl.AndroidClockSettingRepository.Companion.DEFAULT_CLOCK_BACKGROUND_TOPIC
+import com.acanel.deskclock.repo.impl.AndroidClockSettingRepository.Companion.DEFAULT_CLOCK_BACKGROUND_TOPIC_SLUG
+import com.acanel.deskclock.utils.L
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import java.lang.Integer.max
 import java.lang.Integer.min
 import javax.inject.Inject
@@ -56,5 +62,18 @@ class ClockSettingUseCase @Inject constructor(
             fontShadowSize = fontShadowSizeTable[shadowLevel],
             fontColor = fontColor
         )
+    }
+
+    fun getClockBackgroundImageTopicFlow(): Flow<UnsplashTopicVO> {
+        return repo.getClockBackgroundImageTopicSlugFlow().map { selectedSlug ->
+            repo.getUnsplashTopicList().find { selectedSlug == it.slug } ?: DEFAULT_CLOCK_BACKGROUND_TOPIC
+        }
+    }
+
+    suspend fun setClockBackgroundImageTopic(topic: UnsplashTopicVO) = repo.setClockBackgroundImageTopicSlug(topic.slug ?: DEFAULT_CLOCK_BACKGROUND_TOPIC_SLUG)
+
+    suspend fun getClockBackgroundImageTopicList(): List<UnsplashTopicVO> {
+        val isSyncSucceed = repo.syncUnsplashTopicList()
+        return repo.getUnsplashTopicList()
     }
 }

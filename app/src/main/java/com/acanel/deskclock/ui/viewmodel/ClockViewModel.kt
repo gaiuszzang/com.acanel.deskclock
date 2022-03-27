@@ -20,26 +20,26 @@ class ClockViewModel @Inject constructor(
     private val clockSettingUseCase: ClockSettingUseCase
 ):  ViewModel() {
 
-    val showTopMenu = mutableStateOf(false)
+    val showMenu = mutableStateOf(false)
     val clockTime = useCase.getClockTimeFlow().asState(viewModelScope, null)
     val clockTimeDisplayOption = clockSettingUseCase.getClockTimeDisplayOptionFlow().asState(viewModelScope, ClockTimeDisplayOptionVO(40, 120, 80, 20, Color.White.value))
     val clockTimeAdjustLocation = useCase.getClockTimeAdjustLocationFlow().asState(viewModelScope, ClockTimeAdjustLocationVO(0.5f, 0.5f))
-    val backImageUrl = useCase.getBackImageFlow().asState(viewModelScope, null)
+    val backImage = useCase.getBackImageFlow().asState(viewModelScope, null)
 
     private var showTopMenuJob: Job? = null
 
 
     fun toggleShowTopMenu() {
         showTopMenuJob?.cancel()
-        if (!showTopMenu.value) {
-            showTopMenu.value = true
+        if (!showMenu.value) {
+            showMenu.value = true
             showTopMenuJob = viewModelScope.launch {
                 delay(5000)
-                showTopMenu.value = false
+                showMenu.value = false
                 showTopMenuJob = null
             }
         } else {
-            showTopMenu.value = false
+            showMenu.value = false
         }
     }
 }

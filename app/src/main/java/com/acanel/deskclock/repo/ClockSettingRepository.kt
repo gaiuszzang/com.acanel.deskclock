@@ -1,5 +1,6 @@
 package com.acanel.deskclock.repo
 
+import com.acanel.deskclock.entity.UnsplashTopicVO
 import kotlinx.coroutines.flow.Flow
 
 interface ClockSettingRepository {
@@ -22,4 +23,11 @@ interface ClockSettingRepository {
 
     fun getClockFontColorFlow(): Flow<ULong>
     suspend fun setClockFontColor(color: ULong)
+
+    fun getClockBackgroundImageTopicSlugFlow(): Flow<String>
+    suspend fun setClockBackgroundImageTopicSlug(slug: String)
+
+    suspend fun getUnsplashTopicList(): List<UnsplashTopicVO>
+    suspend fun updateUnsplashTopicList(topicList: List<UnsplashTopicVO>?)
+    suspend fun syncUnsplashTopicList(): Boolean
 }

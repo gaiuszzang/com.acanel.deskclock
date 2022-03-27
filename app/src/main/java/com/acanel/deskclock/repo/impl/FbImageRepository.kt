@@ -8,6 +8,7 @@ import com.acanel.deskclock.entity.ErrorType
 import com.acanel.deskclock.entity.RepoResult
 import com.acanel.deskclock.entity.UnsplashImageVO
 import com.acanel.deskclock.repo.ImageRepository
+import com.acanel.deskclock.repo.fb.DeskClockFbApi
 import com.acanel.deskclock.utils.noException
 import com.acanel.deskclock.utils.noSuspendException
 import com.google.gson.Gson
@@ -20,19 +21,14 @@ import retrofit2.http.*
 import javax.inject.Inject
 
 class FbImageRepository @Inject constructor(
-    @UnsplashSettingDataStore private val dataStore: DataStore<Preferences>
+    @UnsplashSettingDataStore private val dataStore: DataStore<Preferences>,
+    private val fb: DeskClockFbApi
 ): BaseDataStoreRepository(dataStore), ImageRepository {
     private val randomPhoto by lazy { stringPreferencesKey("randomPhoto") }
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("https://us-central1-acanel-deskclock.cloudfunctions.net")
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-    private val service = retrofit.create(FbApi::class.java)
-
-    override fun getBackgroundImageFlow(): Flow<RepoResult<UnsplashImageVO>> {
+    override fun getBackgroundImageFlow(slug: String): Flow<RepoResult<UnsplashImageVO>> {
         return flow {
-            val response: Response<UnsplashImageVO>? = noSuspendException { service.backgroundImageRandom() }
+            val response: Response<UnsplashImageVO>? = noSuspendException { fb.getBackgroundImage(slug) }
             if (response != null && response.isSuccessful && response.body() != null) {
                 val unsplashImageVO = response.body()
                 setPreference(randomPhoto, Gson().toJson(unsplashImageVO))
@@ -49,10 +45,5 @@ class FbImageRepository @Inject constructor(
                 }
             }
         }
-    }
-
-    interface FbApi {
-        @GET("/api/backgroundImage/random")
-        suspend fun backgroundImageRandom() : Response<UnsplashImageVO>
     }
 }

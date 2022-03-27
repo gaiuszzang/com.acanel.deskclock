@@ -1,10 +1,8 @@
 package com.acanel.deskclock.ui.screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -23,7 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.acanel.deskclock.ui.LocalNavAction
 import com.acanel.deskclock.ui.theme.AppTheme
 import com.acanel.deskclock.ui.theme.Black
-import com.acanel.deskclock.ui.theme.White
+import com.acanel.deskclock.ui.viewmodel.RadioButtonListDialogContent
 import com.acanel.deskclock.ui.viewmodel.SettingMenu
 import com.acanel.deskclock.ui.viewmodel.SettingScreenState
 import com.acanel.deskclock.ui.viewmodel.SettingViewModel
@@ -33,29 +31,25 @@ import com.acanel.groovin.composable.GroovinSwitch
 import com.acanel.groovin.composable.ScreenPortrait
 import com.godaddy.android.colorpicker.ClassicColorPicker
 import com.godaddy.android.colorpicker.HsvColor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingScreen(
     viewModel: SettingViewModel = hiltViewModel()
 ) {
     val uiState = viewModel.uiState.value
-    val menuClickAction: (SettingMenu) -> Unit = { viewModel.onClickMenu(it) }
-    val intValueChangeAction: (SettingMenu, Int) -> Unit = { menu, value -> viewModel.onIntSlideValueChanged(menu, value) }
-    val onColorPickerChanged: (SettingMenu, ULong) -> Unit = { menu, color -> viewModel.onColorPickerChanged(menu, color) }
 
     AppTheme {
         ScreenPortrait {
-            SettingScreenIn(uiState, menuClickAction, intValueChangeAction, onColorPickerChanged)
+            SettingScreenIn(uiState)
         }
     }
 }
 
 @Composable
 fun SettingScreenIn(
-    uiState: SettingScreenState,
-    menuClickAction: (SettingMenu) -> Unit,
-    intValueChangeAction: (SettingMenu, Int) -> Unit,
-    onColorPickerChanged: (SettingMenu, ULong) -> Unit
+    uiState: SettingScreenState
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -69,9 +63,10 @@ fun SettingScreenIn(
                 this.items(uiState.menuList) { menu ->
                     when (menu) {
                         is SettingMenu.SettingTitle -> SettingTitle(menu)
-                        is SettingMenu.SettingOnOffMenu -> SettingOnOffMenu(menu, menuClickAction)
-                        is SettingMenu.SettingIntSlideDialogMenu -> SettingIntSlideDialogMenu(menu, intValueChangeAction)
-                        is SettingMenu.SettingColorPickerDialogMenu -> SettingColorPickerDialogMenu(menu, onColorPickerChanged)
+                        is SettingMenu.SettingOnOffMenu -> SettingOnOffMenu(menu)
+                        is SettingMenu.SettingIntSlideDialogMenu -> SettingIntSlideDialogMenu(menu)
+                        is SettingMenu.SettingColorPickerDialogMenu -> SettingColorPickerDialogMenu(menu)
+                        is SettingMenu.SettingRadioButtonListDialogMenu<*> -> SettingRadioButtonListDialogMenu(menu)
                     }
                 }
             }
@@ -119,10 +114,13 @@ fun SettingTitle(menu: SettingMenu.SettingTitle) {
 }
 
 @Composable
-fun SettingOnOffMenu(menu: SettingMenu.SettingOnOffMenu, clickAction: (SettingMenu) -> Unit) {
+fun SettingOnOffMenu(menu: SettingMenu.SettingOnOffMenu) {
+    val scope = rememberCoroutineScope()
     GroovinBasicMenuCard(
         onClick = {
-            clickAction(menu)
+            scope.launch {
+                menu.updateCallback(!menu.isOn)
+            }
         }
     ) {
         ConstraintLayout(
@@ -150,7 +148,9 @@ fun SettingOnOffMenu(menu: SettingMenu.SettingOnOffMenu, clickAction: (SettingMe
                     end.linkTo(parent.end)
                 },
                 onCheckedChange = {
-                    clickAction(menu)
+                    scope.launch {
+                        menu.updateCallback(!menu.isOn)
+                    }
                 }
             )
         }
@@ -159,9 +159,9 @@ fun SettingOnOffMenu(menu: SettingMenu.SettingOnOffMenu, clickAction: (SettingMe
 
 @Composable
 fun SettingIntSlideDialogMenu(
-    menu: SettingMenu.SettingIntSlideDialogMenu,
-    intValueChangeAction: (SettingMenu, Int) -> Unit
+    menu: SettingMenu.SettingIntSlideDialogMenu
 ) {
+    val scope = rememberCoroutineScope()
     var isDialogShow by remember { mutableStateOf(false) }
 
     //Card
@@ -199,15 +199,15 @@ fun SettingIntSlideDialogMenu(
         }
     }
     if (isDialogShow) {
-        SettingIntSlideDialog(menu, intValueChangeAction, onDismiss = { isDialogShow = false })
+        SettingIntSlideDialog(menu, scope, onDismiss = { isDialogShow = false })
     }
 }
 
 @Composable
 fun SettingColorPickerDialogMenu(
-    menu: SettingMenu.SettingColorPickerDialogMenu,
-    onColorChanged: (SettingMenu, ULong) -> Unit
+    menu: SettingMenu.SettingColorPickerDialogMenu
 ) {
+    val scope = rememberCoroutineScope()
     var isDialogShow by remember { mutableStateOf(false) }
 
     //Card
@@ -248,10 +248,7 @@ fun SettingColorPickerDialogMenu(
     if (isDialogShow) {
         SettingColorPickerDialog(
             menu = menu,
-            onColorChanged = { settingMenu, color ->
-                onColorChanged(settingMenu, color)
-                isDialogShow = false
-            },
+            parentScope = scope,
             onDismiss = { isDialogShow = false }
         )
     }
@@ -259,9 +256,56 @@ fun SettingColorPickerDialogMenu(
 
 
 @Composable
+fun <T> SettingRadioButtonListDialogMenu(
+    menu: SettingMenu.SettingRadioButtonListDialogMenu<T>
+) {
+    var isDialogShow by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    //Card
+    GroovinBasicMenuCard(
+        onClick = { isDialogShow = true }
+    ) {
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            val (title, value) = createRefs()
+            Text(
+                text = menu.title,
+                color = Black,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.constrainAs(title) {
+                    top.linkTo(parent.top)
+                    bottom.linkTo(parent.bottom)
+                    start.linkTo(parent.start)
+                }
+            )
+            Text(
+                text = menu.value,
+                color = Black,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.constrainAs(value) {
+                    top.linkTo(parent.top)
+                    bottom.linkTo(parent.bottom)
+                    end.linkTo(parent.end)
+                }
+            )
+        }
+    }
+    if (isDialogShow) {
+        SettingRadioButtonListDialog(menu, scope, onDismiss = { isDialogShow = false })
+    }
+}
+
+
+@Composable
 fun SettingIntSlideDialog(
     menu: SettingMenu.SettingIntSlideDialogMenu,
-    intValueChangeAction: (SettingMenu, Int) -> Unit,
+    parentScope: CoroutineScope,
     onDismiss : () -> Unit
 ) {
     var sliderPosition by remember { mutableStateOf(menu.value.toFloat()) }
@@ -279,7 +323,9 @@ fun SettingIntSlideDialog(
                 sliderPosition = it
             },
             onValueChangeFinished = {
-                intValueChangeAction(menu, sliderPosition.toInt())
+                parentScope.launch {
+                    menu.updateCallback(sliderPosition.toInt())
+                }
             }
         )
     }
@@ -288,14 +334,19 @@ fun SettingIntSlideDialog(
 @Composable
 fun SettingColorPickerDialog(
     menu: SettingMenu.SettingColorPickerDialogMenu,
-    onColorChanged: (SettingMenu, ULong) -> Unit,
+    parentScope: CoroutineScope,
     onDismiss: () -> Unit
 ) {
     var pickColor by remember { mutableStateOf(Color(menu.color)) }
     GroovinOkayCancelDialog(
         title = menu.dialogTitle,
         cancelable = true,
-        onPositiveClick = { onColorChanged(menu, pickColor.value) },
+        onPositiveClick = {
+            parentScope.launch {
+                menu.updateCallback(pickColor.value)
+                onDismiss()
+            }
+        },
         onCancelClick = onDismiss
     ) {
         ClassicColorPicker(
@@ -308,6 +359,72 @@ fun SettingColorPickerDialog(
     }
 }
 
+@Composable
+fun <T> SettingRadioButtonListDialog(
+    menu: SettingMenu.SettingRadioButtonListDialogMenu<T>,
+    parentScope: CoroutineScope,
+    onDismiss: () -> Unit
+) {
+    var dialogContent: RadioButtonListDialogContent<T> by remember { mutableStateOf(RadioButtonListDialogContent.Init()) }
+    var selectedIndex by remember { mutableStateOf(0) }
+    val listState: LazyListState = rememberLazyListState()
+
+    LaunchedEffect(true) {
+        val loadContent = menu.dialogContentLoadListener()
+        dialogContent = loadContent
+        selectedIndex = loadContent.selectedIndex
+        listState.scrollToItem(loadContent.selectedIndex)
+    }
+
+    GroovinOkayCancelDialog(
+        title = menu.dialogTitle,
+        cancelable = true,
+        onPositiveClick = {
+            parentScope.launch {
+                if (dialogContent is RadioButtonListDialogContent.Loaded) {
+                    menu.updateCallback((dialogContent as RadioButtonListDialogContent.Loaded<T>).content[selectedIndex])
+                }
+                onDismiss()
+            }
+        },
+        onCancelClick = onDismiss
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().height(300.dp).wrapContentSize(Alignment.Center)
+        ) {
+            if (dialogContent is RadioButtonListDialogContent.Init) {
+                Text(text = "Loading...")
+            } else if (dialogContent is RadioButtonListDialogContent.Loaded) {
+                val content = dialogContent as RadioButtonListDialogContent.Loaded<T>
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    state = listState
+                ) {
+                    itemsIndexed(content.content) { index, item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(true) { selectedIndex = index },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = index == selectedIndex,
+                                onClick = { selectedIndex = index },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colors.primary,
+                                    unselectedColor = Color.LightGray
+                                )
+                            )
+                            Text(text = menu.itemToValue(item), color = Black)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Preview
 @Composable
 fun PreviewSettingOnOffMenu() {
@@ -315,8 +432,8 @@ fun PreviewSettingOnOffMenu() {
         Column(
             Modifier.fillMaxWidth()
         ) {
-            SettingOnOffMenu(SettingMenu.SettingOnOffMenu("TestKey", "Setting On Menu", true)) {}
-            SettingOnOffMenu(SettingMenu.SettingOnOffMenu("TestKey", "Setting Off Menu", false)) {}
+            SettingOnOffMenu(SettingMenu.SettingOnOffMenu("TestKey", "Setting On Menu", true) {})
+            SettingOnOffMenu(SettingMenu.SettingOnOffMenu("TestKey", "Setting Off Menu", false) {})
         }
     }
 }
@@ -328,8 +445,8 @@ fun SettingColorPickerDialogMenu() {
         Column(
             Modifier.fillMaxWidth()
         ) {
-            SettingColorPickerDialogMenu(SettingMenu.SettingColorPickerDialogMenu("TestKey", "Color Menu", "Pick Color", Color.Cyan.value)) { _, _ -> }
-            SettingColorPickerDialogMenu(SettingMenu.SettingColorPickerDialogMenu("TestKey", "Color Menu", "Pick Color", Color.Red.value)) { _, _ -> }
+            SettingColorPickerDialogMenu(SettingMenu.SettingColorPickerDialogMenu("TestKey", "Color Menu", "Pick Color", Color.Cyan.value) { })
+            SettingColorPickerDialogMenu(SettingMenu.SettingColorPickerDialogMenu("TestKey", "Color Menu", "Pick Color", Color.Red.value) { })
         }
 
     }
@@ -342,8 +459,8 @@ fun PreviewSettingOnOffMenuDarkTheme() {
         Column(
             Modifier.fillMaxWidth()
         ) {
-            SettingOnOffMenu(SettingMenu.SettingOnOffMenu("TestKey", "Setting On Menu", true)) {}
-            SettingOnOffMenu(SettingMenu.SettingOnOffMenu("TestKey", "Setting Off Menu", false)) {}
+            SettingOnOffMenu(SettingMenu.SettingOnOffMenu("TestKey", "Setting On Menu", true) {})
+            SettingOnOffMenu(SettingMenu.SettingOnOffMenu("TestKey", "Setting Off Menu", false) {})
         }
     }
 }

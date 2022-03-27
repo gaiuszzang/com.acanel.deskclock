@@ -8,8 +8,10 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -18,12 +20,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,11 +34,13 @@ import com.acanel.deskclock.R
 import com.acanel.deskclock.entity.ClockTimeAdjustLocationVO
 import com.acanel.deskclock.entity.ClockTimeDisplayOptionVO
 import com.acanel.deskclock.entity.ClockTimeVO
+import com.acanel.deskclock.entity.UnsplashImageVO
 import com.acanel.deskclock.ui.LocalNavAction
 import com.acanel.deskclock.ui.theme.DeskClockTheme
 import com.acanel.deskclock.ui.theme.MenuBackColor
 import com.acanel.deskclock.ui.theme.White
 import com.acanel.deskclock.ui.viewmodel.ClockViewModel
+import com.acanel.deskclock.utils.L
 import com.acanel.groovin.composable.*
 
 @Composable
@@ -51,8 +54,8 @@ fun ClockScreen(clockViewModel: ClockViewModel = hiltViewModel()) {
                         clockViewModel.clockTime.value,
                         clockViewModel.clockTimeDisplayOption.value,
                         clockViewModel.clockTimeAdjustLocation.value,
-                        clockViewModel.backImageUrl.value,
-                        clockViewModel.showTopMenu.value,
+                        clockViewModel.backImage.value,
+                        clockViewModel.showMenu.value,
                         { clockViewModel.toggleShowTopMenu() },
                         navAction.settingAction,
                         navAction.finishAction
@@ -69,8 +72,8 @@ fun ClockScreenIn(
     clockTime: ClockTimeVO?,
     clockTimeDisplayOption: ClockTimeDisplayOptionVO,
     clockTimeAdjustLocationVO: ClockTimeAdjustLocationVO,
-    backImageUrl: String?,
-    showTopMenu: Boolean = false,
+    backImageVO: UnsplashImageVO?,
+    showMenu: Boolean = false,
     screenTouchListener: (() -> Unit)? = null,
     settingAction: (() -> Unit)? = null,
     finishAction: (() -> Unit)? = null
@@ -87,10 +90,10 @@ fun ClockScreenIn(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        val (backImage, settingMenu, timeText) = createRefs()
-        if (backImageUrl != null) {
+        val (backImage, timeText, settingMenu, infoMenu) = createRefs()
+        if (backImageVO?.urls?.regular != null) {
             GroovinUrlCrossFadeImage(
-                url = backImageUrl,
+                url = backImageVO.urls.regular,
                 modifier = Modifier
                     .constrainAs(backImage) {
                         top.linkTo(parent.top)
@@ -142,10 +145,20 @@ fun ClockScreenIn(
                 .constrainAs(settingMenu) {
                     top.linkTo(parent.top)
                 },
-            isShow = showTopMenu,
+            isShow = showMenu,
             settingAction = settingAction,
             finishAction = finishAction
         )
+        if (backImageVO?.urls?.regular != null) {
+            ClockBottomMenu(
+                modifier = Modifier
+                    .constrainAs(infoMenu) {
+                        bottom.linkTo(parent.bottom)
+                    },
+                isShow = showMenu,
+                backImageVO = backImageVO
+            )
+        }
     }
 }
 
@@ -211,6 +224,7 @@ private fun ClockTopMenu(
     finishAction: (() -> Unit)? = null
 ) {
     AnimatedVisibility(
+        modifier = Modifier.fillMaxWidth().then(modifier),
         visible = isShow,
         enter = slideInVertically(
             initialOffsetY = { fullHeight -> -fullHeight },
@@ -226,7 +240,6 @@ private fun ClockTopMenu(
                 .fillMaxWidth()
                 .background(color = MenuBackColor, shape = RoundedCornerShape(0.dp, 0.dp, 24.dp, 24.dp))
                 .padding(8.dp)
-                .then(modifier)
         ) {
             val (settingButton, exitButton) = createRefs()
             IconButton(
@@ -249,6 +262,71 @@ private fun ClockTopMenu(
                     },
                 onClick = { finishAction?.invoke() }) {
                 Icon(painterResource(id = R.drawable.ic_close), "Close", tint = White, modifier = Modifier.padding(6.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClockBottomMenu(
+    modifier: Modifier = Modifier,
+    isShow: Boolean = false,
+    backImageVO: UnsplashImageVO
+) {
+    val photographerName = backImageVO.user?.name
+    val photographerUrl = backImageVO.user?.links?.html
+    if (photographerName == null || photographerUrl == null) return
+    AnimatedVisibility(
+        modifier = Modifier.fillMaxWidth().then(modifier),
+        visible = isShow,
+        enter = slideInVertically(
+            initialOffsetY = { fullHeight -> +fullHeight },
+            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { fullHeight -> +fullHeight },
+            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
+        )
+    ) {
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = MenuBackColor, shape = RoundedCornerShape(24.dp, 24.dp, 0.dp, 0.dp))
+                .padding(24.dp, 16.dp, 24.dp, 16.dp)
+        ) {
+            val (photoInfo) = createRefs()
+            val uriHandler = LocalUriHandler.current
+            val photoInfoAnnotatedString = buildAnnotatedString {
+                withStyle(style = SpanStyle(fontSize = 14.sp, color = MaterialTheme.colors.onPrimary)) {
+                    append("Photo by ")
+                    pushStringAnnotation(
+                        tag = "url",
+                        annotation = "$photographerUrl?utm_source=DeskClock&utm_medium=referral"
+                    )
+                    withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                        append(photographerName)
+                    }
+                    pop()
+                    append(" on ")
+                    pushStringAnnotation(
+                        tag = "url",
+                        annotation = "https://unsplash.com/?utm_source=DeskClock&utm_medium=referral"
+                    )
+                    withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                        append("Unsplash")
+                    }
+                }
+            }
+            ClickableText(
+                modifier = Modifier
+                    .constrainAs(photoInfo) {
+                        top.linkTo(parent.top)
+                        end.linkTo(parent.end)
+                    },
+                text = photoInfoAnnotatedString) {
+                photoInfoAnnotatedString.getStringAnnotations("url", it, it).firstOrNull()?.let { annotatedString ->
+                    uriHandler.openUri(annotatedString.item)
+                }
             }
         }
     }
@@ -289,7 +367,7 @@ fun PreviewClockScreen3() {
             ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
             ClockTimeAdjustLocationVO(0.5f, 0.5f),
             null,
-            showTopMenu = true
+            showMenu = true
         )
     }
 }

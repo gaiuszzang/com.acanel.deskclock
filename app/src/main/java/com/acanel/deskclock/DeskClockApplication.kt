@@ -7,5 +7,6 @@ import dagger.hilt.android.HiltAndroidApp
 class DeskClockApplication: Application() {
     override fun onCreate() {
         super.onCreate()
+        AppInitializer.init(this)
     }
 }

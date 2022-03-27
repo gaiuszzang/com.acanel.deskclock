@@ -3,6 +3,7 @@ package com.acanel.deskclock.usecase
 import com.acanel.deskclock.entity.ClockTimeAdjustLocationVO
 import com.acanel.deskclock.entity.ClockTimeDisplayOptionVO
 import com.acanel.deskclock.entity.ClockTimeVO
+import com.acanel.deskclock.entity.UnsplashImageVO
 import com.acanel.deskclock.repo.ClockRepository
 import com.acanel.deskclock.repo.ClockSettingRepository
 import com.acanel.deskclock.repo.ImageRepository
@@ -30,12 +31,13 @@ class ClockUseCase @Inject constructor(
         }
     }
 
-    fun getBackImageFlow(period: Long = TIME_BACKIMAGE_UPDATE_MS): Flow<String?> {
+    fun getBackImageFlow(period: Long = TIME_BACKIMAGE_UPDATE_MS): Flow<UnsplashImageVO?> {
         return periodFlow(period).combine(clockSettingRepo.useClockBackgroundImage()) { _, useClockBackgroundImage ->
             if (useClockBackgroundImage) {
                 val imagePath = if (clockSettingRepo.useClockBackgroundImage().first()) {
-                    val response = imageRepo.getBackgroundImageFlow().first()
-                    if (response.isSucceed && response.data != null) response.data.urls?.regular else null
+                    val slug = clockSettingRepo.getClockBackgroundImageTopicSlugFlow().first()
+                    val response = imageRepo.getBackgroundImageFlow(slug).first()
+                    if (response.isSucceed && response.data != null) response.data else null
                 } else {
                     null
                 }

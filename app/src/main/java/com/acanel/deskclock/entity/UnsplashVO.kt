@@ -1,5 +1,7 @@
 package com.acanel.deskclock.entity
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 
 data class UnsplashImageVO(
@@ -54,4 +56,11 @@ data class UnsplashUserVO(
     val links: UnsplashLinkVO? = null,
     @SerializedName("profile_image")
     val profileImage : UnsplashImageUrlVO? = null
+)
+
+@Entity(tableName = "UnsplashTopic", primaryKeys = ["id"])
+data class UnsplashTopicVO(
+    val id: String,
+    val slug: String?,
+    val title: String?
 )
