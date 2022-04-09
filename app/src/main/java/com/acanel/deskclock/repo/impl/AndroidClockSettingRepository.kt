@@ -8,6 +8,7 @@ import com.acanel.deskclock.entity.UnsplashTopicVO
 import com.acanel.deskclock.repo.ClockSettingRepository
 import com.acanel.deskclock.repo.db.DeskClockDao
 import com.acanel.deskclock.repo.fb.DeskClockFbApi
+import com.acanel.deskclock.utils.noSuspendException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -26,6 +27,7 @@ class AndroidClockSettingRepository @Inject constructor(
     private val clockFontSizeLevel by lazy { intPreferencesKey("clockFontSizeLevel") }
     private val clockFontShadowSizeLevel by lazy { intPreferencesKey("clockFontShadowSizeLevel") }
     private val clockFontColor by lazy { longPreferencesKey("clockFontColor") }
+    private val unsplashTopicListSyncedTime by lazy { longPreferencesKey("unsplashTopicListSyncedTime") }
 
     override fun is24HourDisplay(): Flow<Boolean> = getPreferenceFlow(is24HourDisplay, false)
     override suspend fun set24HourDisplay(on: Boolean) = setPreference(is24HourDisplay, on)
@@ -51,15 +53,27 @@ class AndroidClockSettingRepository @Inject constructor(
     override suspend fun setClockBackgroundImageTopicSlug(slug: String) = setPreference(clockBackgroundTopic, slug)
 
     override suspend fun getUnsplashTopicList(): List<UnsplashTopicVO> {
+        val currentTime = System.currentTimeMillis()
+        val syncedTime = getPreference(unsplashTopicListSyncedTime, 0)
         val list = db.getUnsplashTopicList()
-        return if (list.isNullOrEmpty()) {
-            listOf(DEFAULT_CLOCK_BACKGROUND_TOPIC)
+        if (currentTime - syncedTime < 10000 && !list.isNullOrEmpty()) {
+            return list // return cached list //TODO Fix (10000ms should be fixed)
+        }
+        val syncedList = getUnsplashTopicListFormFirebase()
+        return if (!syncedList.isNullOrEmpty()) {
+            updateUnsplashTopicList(syncedList)
+            setPreference(unsplashTopicListSyncedTime, currentTime)
+            syncedList
         } else {
-            list
+            if (!list.isNullOrEmpty()) {
+                list
+            } else {
+                listOf(DEFAULT_CLOCK_BACKGROUND_TOPIC)
+            }
         }
     }
 
-    override suspend fun updateUnsplashTopicList(topicList: List<UnsplashTopicVO>?) {
+    private suspend fun updateUnsplashTopicList(topicList: List<UnsplashTopicVO>?) {
         db.removeUnsplashTopicListAll()
         db.addUnsplashTopic(DEFAULT_CLOCK_BACKGROUND_TOPIC)
         topicList?.let {
@@ -67,14 +81,12 @@ class AndroidClockSettingRepository @Inject constructor(
         }
     }
 
-    override suspend fun syncUnsplashTopicList(): Boolean {
-        val listResponse = fb.getTopicList()
-        val list = listResponse.body()
-        return if (listResponse.isSuccessful && list != null) {
-            updateUnsplashTopicList(list)
-            true
+    private suspend fun getUnsplashTopicListFormFirebase(): List<UnsplashTopicVO>? {
+        val listResponse = noSuspendException { fb.getTopicList() }
+        return if (listResponse?.body() != null && listResponse.isSuccessful) {
+            listResponse.body()
         } else {
-            false
+            null
         }
     }
 

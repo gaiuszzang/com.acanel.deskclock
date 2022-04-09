@@ -28,6 +28,4 @@ interface ClockSettingRepository {
     suspend fun setClockBackgroundImageTopicSlug(slug: String)
 
     suspend fun getUnsplashTopicList(): List<UnsplashTopicVO>
-    suspend fun updateUnsplashTopicList(topicList: List<UnsplashTopicVO>?)
-    suspend fun syncUnsplashTopicList(): Boolean
 }

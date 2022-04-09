@@ -3,7 +3,7 @@ package com.acanel.deskclock.repo.db
 import androidx.room.*
 import com.acanel.deskclock.entity.UnsplashTopicVO
 
-@Database(entities = [UnsplashTopicVO::class], version = 1)
+@Database(entities = [UnsplashTopicVO::class], version = 1, exportSchema = false)
 abstract class DeskClockDatabase: RoomDatabase() {
     abstract fun getDao(): DeskClockDao
 }

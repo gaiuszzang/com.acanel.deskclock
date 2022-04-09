@@ -73,7 +73,6 @@ class ClockSettingUseCase @Inject constructor(
     suspend fun setClockBackgroundImageTopic(topic: UnsplashTopicVO) = repo.setClockBackgroundImageTopicSlug(topic.slug ?: DEFAULT_CLOCK_BACKGROUND_TOPIC_SLUG)
 
     suspend fun getClockBackgroundImageTopicList(): List<UnsplashTopicVO> {
-        val isSyncSucceed = repo.syncUnsplashTopicList()
         return repo.getUnsplashTopicList()
     }
 }

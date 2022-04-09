@@ -1,34 +1,26 @@
 package com.acanel.deskclock.ui.screen
 
 import android.view.MotionEvent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.*
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.constraintlayout.compose.ConstraintLayoutScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.acanel.deskclock.R
 import com.acanel.deskclock.entity.ClockTimeAdjustLocationVO
@@ -36,30 +28,21 @@ import com.acanel.deskclock.entity.ClockTimeDisplayOptionVO
 import com.acanel.deskclock.entity.ClockTimeVO
 import com.acanel.deskclock.entity.UnsplashImageVO
 import com.acanel.deskclock.ui.LocalNavAction
+import com.acanel.deskclock.ui.composable.clock.ClockSystemMenu
+import com.acanel.deskclock.ui.composable.clock.ClockSystemMenuPosition
+import com.acanel.deskclock.ui.composable.clock.ClockTime
 import com.acanel.deskclock.ui.theme.DeskClockTheme
-import com.acanel.deskclock.ui.theme.MenuBackColor
 import com.acanel.deskclock.ui.theme.White
 import com.acanel.deskclock.ui.viewmodel.ClockViewModel
-import com.acanel.deskclock.utils.L
 import com.acanel.groovin.composable.*
 
 @Composable
-fun ClockScreen(clockViewModel: ClockViewModel = hiltViewModel()) {
-    val navAction = LocalNavAction.current
+fun ClockActivityScreen(clockViewModel: ClockViewModel = hiltViewModel()) {
     ScreenLandscape {
         KeepScreenOn {
             ScreenImmersive {
                 DeskClockTheme {
-                    ClockScreenIn(
-                        clockViewModel.clockTime.value,
-                        clockViewModel.clockTimeDisplayOption.value,
-                        clockViewModel.clockTimeAdjustLocation.value,
-                        clockViewModel.backImage.value,
-                        clockViewModel.showMenu.value,
-                        { clockViewModel.toggleShowTopMenu() },
-                        navAction.settingAction,
-                        navAction.finishAction
-                    )
+                    ClockScreen(clockViewModel.clockState, clockViewModel.menuState)
                 }
             }
         }
@@ -68,306 +51,221 @@ fun ClockScreen(clockViewModel: ClockViewModel = hiltViewModel()) {
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ClockScreenIn(
-    clockTime: ClockTimeVO?,
-    clockTimeDisplayOption: ClockTimeDisplayOptionVO,
-    clockTimeAdjustLocationVO: ClockTimeAdjustLocationVO,
-    backImageVO: UnsplashImageVO?,
-    showMenu: Boolean = false,
-    screenTouchListener: (() -> Unit)? = null,
-    settingAction: (() -> Unit)? = null,
-    finishAction: (() -> Unit)? = null
+fun ClockScreen(
+    clockState: ClockViewModel.ClockState,
+    clockMenuState: ClockViewModel.ClockMenuState
 ) {
+    val navAction = LocalNavAction.current
     val animatedVerticalBias by animateFloatAsState(
-        targetValue = clockTimeAdjustLocationVO.verticalBias,
+        targetValue = clockState.displayLocation.verticalBias,
         animationSpec = tween(durationMillis = 10000, easing = LinearEasing)
     )
     val animatedHorizontalBias by animateFloatAsState(
-        targetValue = clockTimeAdjustLocationVO.horizontalBias,
+        targetValue = clockState.displayLocation.horizontalBias,
         animationSpec = tween(durationMillis = 10000, easing = LinearEasing)
     )
     ConstraintLayout(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
-        val (backImage, timeText, settingMenu, infoMenu) = createRefs()
-        if (backImageVO?.urls?.regular != null) {
-            GroovinUrlCrossFadeImage(
-                url = backImageVO.urls.regular,
-                modifier = Modifier
-                    .constrainAs(backImage) {
-                        top.linkTo(parent.top)
-                        bottom.linkTo(parent.bottom)
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                    }
-                    .fillMaxSize()
-                    .pointerInteropFilter {
-                        if (it.action == MotionEvent.ACTION_DOWN) {
-                            screenTouchListener?.invoke()
-                        }
-                        true
-                    }
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .constrainAs(backImage) {
-                        top.linkTo(parent.top)
-                        bottom.linkTo(parent.bottom)
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                    }
-                    .fillMaxSize()
-                    .pointerInteropFilter {
-                        if (it.action == MotionEvent.ACTION_DOWN) {
-                            screenTouchListener?.invoke()
-                        }
-                        true
-                    }
-            )
-        }
-
-        ClockTime(
-            clockTime = clockTime,
-            clockTimeDisplayOption = clockTimeDisplayOption,
+        val (backImage, clockTime) = createRefs()
+        ClockBackground(
+            backgroundImageUrl = clockState.backImage?.urls?.regular,
             modifier = Modifier
-                .constrainAs(timeText) {
+                .constrainAs(backImage) {
+                    top.linkTo(parent.top)
+                    bottom.linkTo(parent.bottom)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                }
+                .fillMaxSize()
+                .onActionDownListener { clockMenuState.onToggleShowMenu?.invoke() }
+        )
+        ClockTime(
+            clockTime = clockState.clockTime,
+            clockTimeDisplayOption = clockState.displayOption,
+            modifier = Modifier
+                .constrainAs(clockTime) {
                     centerVerticallyTo(parent, animatedVerticalBias)
                     centerHorizontallyTo(parent, animatedHorizontalBias)
                 }
                 .height(IntrinsicSize.Max)
                 .width(IntrinsicSize.Max)
         )
-
         ClockTopMenu(
-            modifier = Modifier
-                .constrainAs(settingMenu) {
-                    top.linkTo(parent.top)
-                },
-            isShow = showMenu,
-            settingAction = settingAction,
-            finishAction = finishAction
+            constraintLayoutScope = this,
+            isShow = clockMenuState.showMenu,
+            settingAction = navAction.settingAction,
+            finishAction = navAction.finishAction
         )
-        if (backImageVO?.urls?.regular != null) {
+        if (clockState.backImage?.urls?.regular != null) {
             ClockBottomMenu(
-                modifier = Modifier
-                    .constrainAs(infoMenu) {
-                        bottom.linkTo(parent.bottom)
-                    },
-                isShow = showMenu,
-                backImageVO = backImageVO
+                constraintLayoutScope = this,
+                isShow = clockMenuState.showMenu,
+                backImageVO = clockState.backImage
             )
         }
     }
 }
 
 @Composable
-private fun ClockTime(
-    clockTime: ClockTimeVO?,
-    clockTimeDisplayOption : ClockTimeDisplayOptionVO,
-    modifier: Modifier = Modifier
+private fun ClockBackground(
+    modifier: Modifier = Modifier,
+    backgroundImageUrl: String?
 ) {
-    if (clockTime == null) return
-    Column(
-        modifier = modifier
-    ) {
-        val timeString = buildAnnotatedString {
-            withStyle(SpanStyle(fontSize = clockTimeDisplayOption.timeFontSize.sp, color = Color(clockTimeDisplayOption.fontColor))) {
-                append(clockTime.time)
-            }
-            if (clockTime.ampm != null) {
-                withStyle(SpanStyle(fontSize = clockTimeDisplayOption.ampmFontSize.sp, color = Color(clockTimeDisplayOption.fontColor))) {
-                    append(clockTime.ampm)
-                }
-            }
-        }
-        Text(
-            text = timeString,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(25.dp, 5.dp, 25.dp, 0.dp),
-            style = TextStyle(
-                color = Color.White,
-                shadow = Shadow(
-                    color = Color.Black,
-                    offset = Offset(0f, 0f),
-                    blurRadius = clockTimeDisplayOption.fontShadowSize.toFloat()
-                )
-            )
-        )
-        Text(
-            text = clockTime.date,
-            fontSize = clockTimeDisplayOption.dateFontSize.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(25.dp, 0.dp, 25.dp, 30.dp),
-            style = TextStyle(
-                color = Color(clockTimeDisplayOption.fontColor),
-                shadow = Shadow(
-                    color = Color.Black,
-                    offset = Offset(0f, 0f),
-                    blurRadius = clockTimeDisplayOption.fontShadowSize.toFloat()
-                )
-            )
-        )
+    if (backgroundImageUrl != null) {
+        GroovinUrlCrossFadeImage(url = backgroundImageUrl, modifier = modifier)
+    } else {
+        Box(modifier = modifier)
     }
 }
 
 @Composable
 private fun ClockTopMenu(
-    modifier: Modifier = Modifier,
+    constraintLayoutScope: ConstraintLayoutScope,
     isShow: Boolean = false,
     settingAction: (() -> Unit)? = null,
     finishAction: (() -> Unit)? = null
 ) {
-    AnimatedVisibility(
-        modifier = Modifier.fillMaxWidth().then(modifier),
-        visible = isShow,
-        enter = slideInVertically(
-            initialOffsetY = { fullHeight -> -fullHeight },
-            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { fullHeight -> -fullHeight },
-            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
-        )
+    ClockSystemMenu(
+        constraintLayoutScope = constraintLayoutScope,
+        modifier = Modifier.padding(8.dp),
+        isShow = isShow,
+        position = ClockSystemMenuPosition.TOP
     ) {
-        ConstraintLayout(
+        val (settingButton, exitButton) = createRefs()
+        IconButton(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(color = MenuBackColor, shape = RoundedCornerShape(0.dp, 0.dp, 24.dp, 24.dp))
-                .padding(8.dp)
-        ) {
-            val (settingButton, exitButton) = createRefs()
-            IconButton(
-                modifier = Modifier
-                    .constrainAs(settingButton) {
-                        top.linkTo(parent.top)
-                        start.linkTo(parent.start)
-                    },
-                onClick = {
-                    settingAction?.invoke()
-                }) {
-                Icon(painterResource(id = R.drawable.ic_settings), "Settings", tint = White, modifier = Modifier.padding(6.dp))
-            }
+                .constrainAs(settingButton) {
+                    top.linkTo(parent.top)
+                    start.linkTo(parent.start)
+                },
+            onClick = {
+                settingAction?.invoke()
+            }) {
+            Icon(painterResource(id = R.drawable.ic_settings), "Settings", tint = White, modifier = Modifier.padding(6.dp))
+        }
 
-            IconButton(
-                modifier = Modifier
-                    .constrainAs(exitButton) {
-                        top.linkTo(parent.top)
-                        end.linkTo(parent.end)
-                    },
-                onClick = { finishAction?.invoke() }) {
-                Icon(painterResource(id = R.drawable.ic_close), "Close", tint = White, modifier = Modifier.padding(6.dp))
-            }
+        IconButton(
+            modifier = Modifier
+                .constrainAs(exitButton) {
+                    top.linkTo(parent.top)
+                    end.linkTo(parent.end)
+                },
+            onClick = { finishAction?.invoke() }) {
+            Icon(painterResource(id = R.drawable.ic_close), "Close", tint = White, modifier = Modifier.padding(6.dp))
         }
     }
 }
 
 @Composable
 private fun ClockBottomMenu(
-    modifier: Modifier = Modifier,
+    constraintLayoutScope: ConstraintLayoutScope,
     isShow: Boolean = false,
     backImageVO: UnsplashImageVO
 ) {
     val photographerName = backImageVO.user?.name
     val photographerUrl = backImageVO.user?.links?.html
     if (photographerName == null || photographerUrl == null) return
-    AnimatedVisibility(
-        modifier = Modifier.fillMaxWidth().then(modifier),
-        visible = isShow,
-        enter = slideInVertically(
-            initialOffsetY = { fullHeight -> +fullHeight },
-            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { fullHeight -> +fullHeight },
-            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
-        )
+    ClockSystemMenu(
+        constraintLayoutScope = constraintLayoutScope,
+        modifier = Modifier.padding(24.dp, 16.dp, 24.dp, 16.dp),
+        isShow = isShow,
+        position = ClockSystemMenuPosition.BOTTOM
     ) {
-        ConstraintLayout(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(color = MenuBackColor, shape = RoundedCornerShape(24.dp, 24.dp, 0.dp, 0.dp))
-                .padding(24.dp, 16.dp, 24.dp, 16.dp)
-        ) {
-            val (photoInfo) = createRefs()
-            val uriHandler = LocalUriHandler.current
-            val photoInfoAnnotatedString = buildAnnotatedString {
-                withStyle(style = SpanStyle(fontSize = 14.sp, color = MaterialTheme.colors.onPrimary)) {
-                    append("Photo by ")
-                    pushStringAnnotation(
-                        tag = "url",
-                        annotation = "$photographerUrl?utm_source=DeskClock&utm_medium=referral"
-                    )
-                    withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                        append(photographerName)
-                    }
-                    pop()
-                    append(" on ")
-                    pushStringAnnotation(
-                        tag = "url",
-                        annotation = "https://unsplash.com/?utm_source=DeskClock&utm_medium=referral"
-                    )
-                    withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                        append("Unsplash")
-                    }
+        val (photoInfo) = createRefs()
+        val uriHandler = LocalUriHandler.current
+        val photoInfoAnnotatedString = buildAnnotatedString {
+            withStyle(style = SpanStyle(fontSize = 14.sp, color = MaterialTheme.colors.onPrimary)) {
+                append("Photo by ")
+                pushStringAnnotation(
+                    tag = "url",
+                    annotation = "$photographerUrl?utm_source=DeskClock&utm_medium=referral"
+                )
+                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                    append(photographerName)
+                }
+                pop()
+                append(" on ")
+                pushStringAnnotation(
+                    tag = "url",
+                    annotation = "https://unsplash.com/?utm_source=DeskClock&utm_medium=referral"
+                )
+                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                    append("Unsplash")
                 }
             }
-            ClickableText(
-                modifier = Modifier
-                    .constrainAs(photoInfo) {
-                        top.linkTo(parent.top)
-                        end.linkTo(parent.end)
-                    },
-                text = photoInfoAnnotatedString) {
-                photoInfoAnnotatedString.getStringAnnotations("url", it, it).firstOrNull()?.let { annotatedString ->
-                    uriHandler.openUri(annotatedString.item)
-                }
+        }
+        ClickableText(
+            modifier = Modifier
+                .constrainAs(photoInfo) {
+                    top.linkTo(parent.top)
+                    end.linkTo(parent.end)
+                },
+            text = photoInfoAnnotatedString) {
+            photoInfoAnnotatedString.getStringAnnotations("url", it, it).firstOrNull()?.let { annotatedString ->
+                uriHandler.openUri(annotatedString.item)
             }
         }
     }
 }
 
+@ExperimentalComposeUiApi
+private fun Modifier.onActionDownListener(listener: (() -> Unit) ?): Modifier {
+    return this.pointerInteropFilter {
+        if (it.action == MotionEvent.ACTION_DOWN) {
+            listener?.invoke()
+        }
+        true
+    }
+}
+
 @Preview(widthDp = 640, heightDp = 360)
 @Composable
-fun PreviewClockScreen() {
+fun PreviewClockScreenAmPm() {
     DeskClockTheme {
-        ClockScreenIn(
-            ClockTimeVO("10월 14일 목요일", "2:15", "AM"),
-            ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
-            ClockTimeAdjustLocationVO(0.5f, 0.5f),
-            null
+        ClockScreen(
+            ClockViewModel.ClockState(
+                clockTime = ClockTimeVO("10월 14일 목요일", "2:15", "AM"),
+                displayOption = ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
+                displayLocation = ClockTimeAdjustLocationVO(0.5f, 0.5f)
+            ),
+            ClockViewModel.ClockMenuState(
+                showMenu = false
+            ) {}
         )
     }
 }
 
 @Preview(widthDp = 640, heightDp = 360)
 @Composable
-fun PreviewClockScreen2() {
+fun PreviewClockScreen24Hour() {
     DeskClockTheme {
-        ClockScreenIn(
-            ClockTimeVO("10월 14일 목요일", "2:15", null),
-            ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
-            ClockTimeAdjustLocationVO(0.5f, 0.5f),
-            null
+        ClockScreen(
+            ClockViewModel.ClockState(
+                clockTime = ClockTimeVO("10월 14일 목요일", "2:15", null),
+                displayOption = ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
+                displayLocation = ClockTimeAdjustLocationVO(0.5f, 0.5f)
+            ),
+            ClockViewModel.ClockMenuState(
+                showMenu = false
+            ) {}
         )
     }
 }
 
 @Preview(widthDp = 640, heightDp = 360)
 @Composable
-fun PreviewClockScreen3() {
+fun PreviewClockScreenWithMenu() {
     DeskClockTheme {
-        ClockScreenIn(
-            ClockTimeVO("10월 14일 목요일", "2:15", "AM"),
-            ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
-            ClockTimeAdjustLocationVO(0.5f, 0.5f),
-            null,
-            showMenu = true
+        ClockScreen(
+            ClockViewModel.ClockState(
+                clockTime = ClockTimeVO("10월 14일 목요일", "2:15", "AM"),
+                displayOption = ClockTimeDisplayOptionVO(36, 120, 80, 20, Color.White.value),
+                displayLocation = ClockTimeAdjustLocationVO(0.5f, 0.5f),
+            ),
+            ClockViewModel.ClockMenuState(
+                showMenu = true
+            ) {}
         )
     }
 }

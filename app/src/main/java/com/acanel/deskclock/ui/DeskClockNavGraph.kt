@@ -1,20 +1,19 @@
 package com.acanel.deskclock.ui
 
 import android.app.Activity
-import android.net.Uri
 import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.acanel.deskclock.ui.screen.ClockScreen
-import com.acanel.deskclock.ui.screen.SettingScreen
+import com.acanel.deskclock.ui.screen.ClockActivityScreen
+import com.acanel.deskclock.ui.screen.SettingActivityScreen
 
 object DeskClockDestination {
     const val CLOCK = "clock"
     const val SETTING = "setting"
 }
-val LocalNavAction = compositionLocalOf<DeskClockAction> { error("can't find Action") }
+val LocalNavAction = compositionLocalOf<DeskClockNavAction> { MockDeskClockNavActionImpl() }
 
 @Composable
 fun DeskClockNavGraph(
@@ -22,19 +21,26 @@ fun DeskClockNavGraph(
 ) {
     NavHost(navController = navController, startDestination = DeskClockDestination.CLOCK) {
         composable(DeskClockDestination.CLOCK) {
-            ClockScreen()
+            ClockActivityScreen()
         }
         composable(DeskClockDestination.SETTING) {
-            SettingScreen()
+            SettingActivityScreen()
         }
     }
 }
 
-class DeskClockAction(private val activity: Activity, private val navController: NavHostController?) {
-    val clockAction: () -> Unit = {
+interface DeskClockNavAction {
+    val clockAction: () -> Unit
+    val settingAction: () -> Unit
+    val backAction: () -> Unit
+    val finishAction: () -> Unit
+}
+
+class DeskClockNavActionImpl(private val activity: Activity, private val navController: NavHostController?): DeskClockNavAction {
+    override val clockAction: () -> Unit = {
         navController?.navigate(DeskClockDestination.CLOCK)
     }
-    val settingAction: () -> Unit = {
+    override val settingAction: () -> Unit = {
         navController?.navigate(DeskClockDestination.SETTING)
     }
     /*
@@ -45,11 +51,18 @@ class DeskClockAction(private val activity: Activity, private val navController:
         }
     }
     */
-    val backAction: () -> Unit = {
+    override val backAction: () -> Unit = {
         navController?.popBackStack()
     }
 
-    val finishAction: () -> Unit = {
+    override val finishAction: () -> Unit = {
         activity.finish()
     }
+}
+
+class MockDeskClockNavActionImpl: DeskClockNavAction {
+    override val clockAction: () -> Unit = {}
+    override val settingAction: () -> Unit = {}
+    override val backAction: () -> Unit = {}
+    override val finishAction: () -> Unit = {}
 }

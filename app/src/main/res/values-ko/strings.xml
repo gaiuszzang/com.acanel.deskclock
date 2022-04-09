@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="clock_date_format">y년 MM월 dd일 (E)</string>
+
+    <string name="setting_menu_title_clock_time_display">시계 표시 설정</string>
+    <string name="setting_menu_title_24hour_format">24시간 형식 사용</string>
+    <string name="setting_menu_title_burn_in_prevention">번인 방지 설정</string>
+    <string name="setting_menu_title_clock_font_size">시계 글자 크기</string>
+    <string name="setting_menu_title_clock_font_shadow_size">시계 글자 그림자 크기</string>
+    <string name="setting_menu_title_clock_font_color">시계 글자 색상 설정</string>
+    <string name="setting_menu_title_clock_background">시계 배경화면 설정</string>
+    <string name="setting_menu_title_use_background_image">배경화면으로 이미지 적용</string>
+    <string name="setting_menu_title_background_image_topic">배경화면 이미지 카테고리</string>
+</resources>
