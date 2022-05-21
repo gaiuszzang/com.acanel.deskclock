@@ -1,9 +1,11 @@
 package com.acanel.deskclock.entity
 
+import androidx.annotation.Keep
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 
+@Keep
 data class UnsplashImageVO(
     val id: String? = null,
     @SerializedName("created_at")
@@ -24,6 +26,7 @@ data class UnsplashImageVO(
     val user: UnsplashUserVO? = null
 )
 
+@Keep
 data class UnsplashImageUrlVO(
     val raw: String? = null,
     val full: String? = null,
@@ -34,6 +37,7 @@ data class UnsplashImageUrlVO(
     val large: String? = null,
 )
 
+@Keep
 data class UnsplashLinkVO(
     val self: String? = null,
     val html: String? = null,
@@ -47,6 +51,7 @@ data class UnsplashLinkVO(
     val followers: String? = null
 )
 
+@Keep
 data class UnsplashUserVO(
     val id: String? = null,
     val username: String? = null,
@@ -58,6 +63,7 @@ data class UnsplashUserVO(
     val profileImage : UnsplashImageUrlVO? = null
 )
 
+@Keep
 @Entity(tableName = "UnsplashTopic", primaryKeys = ["id"])
 data class UnsplashTopicVO(
     val id: String,
