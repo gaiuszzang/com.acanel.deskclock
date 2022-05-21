@@ -25,6 +25,12 @@ jobs:
     - name: Prepare Google Service json
       run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > ./app/google-services.json
 
+    - name: Prepare Keystore
+      run: echo '${{ secrets.DESK_CLOCK_KEYSTORE_ENCODED }}' | base64 -d > ./app/deskclock-keystore.jks
+
+    - name: Prepare Local.Properties
+      run: echo '${{ secrets.LOCAL_PROPERTIES }}' > ./local.properties
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
@@ -36,3 +42,21 @@ jobs:
       with:
         name: debugApk
         path: app/build/outputs/apk/debug
+
+#    - name: Build release APK
+#      run: bash ./gradlew assembleRelease --stacktrace
+#
+#    - name: Upload Release APK
+#      uses: actions/upload-artifact@v2.3.1
+#      with:
+#        name: releaseApk
+#        path: app/build/outputs/apk/release
+
+    - name: Build release Bundle
+      run: bash ./gradlew bundleRelease --stacktrace
+
+    - name: Upload release Bundle
+      uses: actions/upload-artifact@v2.3.1
+      with:
+        name: releaseBundle
+        path: app/build/outputs/bundle/release

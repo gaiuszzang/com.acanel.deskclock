@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">DeskClock</string>
+    <string name="app_name" translatable="false">Beauty Clock</string>
 
     <string name="clock_date_format">E, MMMM dd, y</string>
 
