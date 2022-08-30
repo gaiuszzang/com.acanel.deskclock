@@ -11,14 +11,13 @@ data class IntSlideDialogState(
     val title: String,
     val value: Int,
     val range: ClosedRange<Int>,
-    val onUpdate: suspend (Int) -> Unit,
+    val onUpdate: (Int) -> Unit,
     val onDismiss: () -> Unit
 )
 
 @Composable
 fun IntSlideDialog(
-    dialogState: IntSlideDialogState,
-    parentScope: CoroutineScope
+    dialogState: IntSlideDialogState
 ) {
     if (!dialogState.isShow) return
     var sliderPosition by remember { mutableStateOf(dialogState.value.toFloat()) }
@@ -36,9 +35,7 @@ fun IntSlideDialog(
                 sliderPosition = it
             },
             onValueChangeFinished = {
-                parentScope.launch {
-                    dialogState.onUpdate(sliderPosition.toInt())
-                }
+                dialogState.onUpdate(sliderPosition.toInt())
             }
         )
     }

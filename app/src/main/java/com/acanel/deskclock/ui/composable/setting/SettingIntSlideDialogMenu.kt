@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,8 +17,6 @@ import com.acanel.groovin.composable.GroovinBasicMenuCard
 
 @Composable
 fun SettingIntSlideDialogMenu(menu: SettingMenu.SettingIntSlideDialogMenu) {
-    val scope = rememberCoroutineScope()
-
     //Card
     GroovinBasicMenuCard(
         onClick = menu.onMenuClick
@@ -54,5 +51,5 @@ fun SettingIntSlideDialogMenu(menu: SettingMenu.SettingIntSlideDialogMenu) {
             )
         }
     }
-    IntSlideDialog(menu.dialogState, scope)
+    IntSlideDialog(menu.dialogState)
 }

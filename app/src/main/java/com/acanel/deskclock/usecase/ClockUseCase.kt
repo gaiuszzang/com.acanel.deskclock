@@ -34,9 +34,8 @@ class ClockUseCase @Inject constructor(
     fun getBackImageFlow(period: Long = TIME_BACKIMAGE_UPDATE_MS): Flow<UnsplashImageVO?> {
         return combine(periodFlow(period), clockSettingRepo.useClockBackgroundImage(), clockSettingRepo.getClockBackgroundImageTopicSlugFlow()) { _, useClockBackgroundImage, slug ->
             if (useClockBackgroundImage) {
-                val response = imageRepo.getBackgroundImageFlow(slug).first()
-                val imagePath = if (response.isSucceed && response.data != null) response.data else null
-                return@combine (imagePath)
+                val response = imageRepo.getBackgroundImage(slug)
+                return@combine if (response.isSucceed && response.data != null) response.data else null
             } else {
                 return@combine null
             }

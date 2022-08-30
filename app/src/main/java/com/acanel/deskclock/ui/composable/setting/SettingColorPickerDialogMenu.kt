@@ -26,8 +26,6 @@ import com.acanel.groovin.composable.GroovinBasicMenuCard
 fun SettingColorPickerDialogMenu(
     menu: SettingMenu.SettingColorPickerDialogMenu
 ) {
-    val scope = rememberCoroutineScope()
-
     //Card
     GroovinBasicMenuCard(
         onClick = { menu.onMenuClick() }
@@ -63,7 +61,7 @@ fun SettingColorPickerDialogMenu(
             )
         }
     }
-    ColorPickerDialog(state = menu.dialogState, coroutineScope = scope)
+    ColorPickerDialog(state = menu.dialogState)
 }
 
 @Preview

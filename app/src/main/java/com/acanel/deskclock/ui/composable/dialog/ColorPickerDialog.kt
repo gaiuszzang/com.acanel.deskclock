@@ -17,14 +17,13 @@ data class ColorPickerDialogState (
     val isShow: Boolean,
     val title: String,
     val color: ULong,
-    val onUpdate: suspend (ULong) -> Unit,
+    val onUpdate: (ULong) -> Unit,
     val onDismiss: () -> Unit
 )
 
 @Composable
 fun ColorPickerDialog(
-    state: ColorPickerDialogState,
-    coroutineScope: CoroutineScope = rememberCoroutineScope()
+    state: ColorPickerDialogState
 ) {
     if (!state.isShow) return
     var pickColor by remember { mutableStateOf(Color(state.color)) }
@@ -32,10 +31,8 @@ fun ColorPickerDialog(
         title = state.title,
         cancelable = true,
         onPositiveClick = {
-            coroutineScope.launch {
-                state.onUpdate(pickColor.value)
-                state.onDismiss()
-            }
+            state.onUpdate(pickColor.value)
+            state.onDismiss()
         },
         onCancelClick = state.onDismiss
     ) {

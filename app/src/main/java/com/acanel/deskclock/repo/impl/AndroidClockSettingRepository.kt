@@ -56,18 +56,16 @@ class AndroidClockSettingRepository @Inject constructor(
         val currentTime = System.currentTimeMillis()
         val syncedTime = getPreference(unsplashTopicListSyncedTime, 0)
         val list = db.getUnsplashTopicList()
-        if (currentTime - syncedTime < 10000 && !list.isNullOrEmpty()) {
-            return list // return cached list //TODO Fix (10000ms should be fixed)
+        if (currentTime - syncedTime < UNSPLASH_TOPIC_LIST_CACHE_TIME && list.isNotEmpty()) {
+            return list // return cached list
         }
         val syncedList = getUnsplashTopicListFormFirebase()
         return if (!syncedList.isNullOrEmpty()) {
             updateUnsplashTopicList(syncedList)
             setPreference(unsplashTopicListSyncedTime, currentTime)
-            syncedList
+            db.getUnsplashTopicList()
         } else {
-            if (!list.isNullOrEmpty()) {
-                list
-            } else {
+            list.ifEmpty {
                 listOf(DEFAULT_CLOCK_BACKGROUND_TOPIC)
             }
         }
@@ -93,5 +91,6 @@ class AndroidClockSettingRepository @Inject constructor(
     companion object {
         const val DEFAULT_CLOCK_BACKGROUND_TOPIC_SLUG = "random"
         val DEFAULT_CLOCK_BACKGROUND_TOPIC = UnsplashTopicVO(DEFAULT_CLOCK_BACKGROUND_TOPIC_SLUG, DEFAULT_CLOCK_BACKGROUND_TOPIC_SLUG, "Random")
+        private const val UNSPLASH_TOPIC_LIST_CACHE_TIME = 1000 * 60 * 30 //30min
     }
 }

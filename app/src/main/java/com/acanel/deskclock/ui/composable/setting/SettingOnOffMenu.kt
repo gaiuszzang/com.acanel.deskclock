@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -14,17 +13,13 @@ import com.acanel.deskclock.ui.theme.Black
 import com.acanel.deskclock.ui.viewmodel.SettingMenu
 import com.acanel.groovin.composable.GroovinBasicMenuCard
 import com.acanel.groovin.composable.GroovinSwitch
-import kotlinx.coroutines.launch
 
 
 @Composable
 fun SettingOnOffMenu(menu: SettingMenu.SettingOnOffMenu) {
-    val scope = rememberCoroutineScope()
     GroovinBasicMenuCard(
         onClick = {
-            scope.launch {
-                menu.updateCallback(!menu.isOn)
-            }
+            menu.updateCallback(!menu.isOn)
         }
     ) {
         ConstraintLayout(
@@ -52,9 +47,7 @@ fun SettingOnOffMenu(menu: SettingMenu.SettingOnOffMenu) {
                     end.linkTo(parent.end)
                 },
                 onCheckedChange = {
-                    scope.launch {
-                        menu.updateCallback(!menu.isOn)
-                    }
+                    menu.updateCallback(!menu.isOn)
                 }
             )
         }

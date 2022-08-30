@@ -12,8 +12,8 @@ import com.acanel.deskclock.repo.fb.DeskClockFbApi
 import com.acanel.deskclock.utils.noException
 import com.acanel.deskclock.utils.noSuspendException
 import com.google.gson.Gson
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import retrofit2.Response
 import javax.inject.Inject
 
@@ -23,23 +23,26 @@ class FbImageRepository @Inject constructor(
 ): BaseDataStoreRepository(dataStore), ImageRepository {
     private val randomPhoto by lazy { stringPreferencesKey("randomPhoto") }
 
-    override fun getBackgroundImageFlow(slug: String): Flow<RepoResult<UnsplashImageVO>> {
-        return flow {
-            val response: Response<UnsplashImageVO>? = noSuspendException { fb.getBackgroundImage(slug) }
-            if (response != null && response.isSuccessful && response.body() != null) {
-                val unsplashImageVO = response.body()
-                setPreference(randomPhoto, Gson().toJson(unsplashImageVO))
-                emit(RepoResult(data = unsplashImageVO))
+    override suspend fun getBackgroundImage(slug: String): RepoResult<UnsplashImageVO> {
+        val response: Response<UnsplashImageVO>? =
+            withContext(Dispatchers.IO) {
+                noSuspendException {
+                    fb.getBackgroundImage(slug)
+                }
+            }
+        return if (response != null && response.isSuccessful && response.body() != null) {
+            val unsplashImageVO = response.body()
+            setPreference(randomPhoto, Gson().toJson(unsplashImageVO))
+            RepoResult(data = unsplashImageVO)
+        } else {
+            val randomPhotoJson = getPreference(randomPhoto, "")
+            val cachedUnsplashImageVO: UnsplashImageVO? = noException {
+                Gson().fromJson(randomPhotoJson, UnsplashImageVO::class.java)
+            }
+            if (cachedUnsplashImageVO != null) {
+                RepoResult(data = cachedUnsplashImageVO)
             } else {
-                val randomPhotoJson = getPreference(randomPhoto, "")
-                val cachedUnsplashImageVO: UnsplashImageVO? = noException {
-                    Gson().fromJson(randomPhotoJson, UnsplashImageVO::class.java)
-                }
-                if (cachedUnsplashImageVO != null) {
-                    emit(RepoResult(data = cachedUnsplashImageVO))
-                } else {
-                    emit(RepoResult(error = ErrorType.NETWORK_ERROR))
-                }
+                RepoResult(error = ErrorType.NETWORK_ERROR)
             }
         }
     }

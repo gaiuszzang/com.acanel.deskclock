@@ -20,8 +20,6 @@ fun <T> SettingRadioButtonListDialogMenu(
     menu: SettingMenu.SettingRadioButtonListDialogMenu<T>
 ) {
     if (!menu.isVisible) return
-    val scope = rememberCoroutineScope()
-
     //Card
     GroovinBasicMenuCard(
         onClick = menu.onMenuClick
@@ -57,5 +55,5 @@ fun <T> SettingRadioButtonListDialogMenu(
         }
     }
 
-    LazyRadioButtonListDialog(menu.dialogState, scope)
+    LazyRadioButtonListDialog(menu.dialogState)
 }

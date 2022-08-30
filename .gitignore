@@ -12,3 +12,5 @@
 .cxx
 local.properties
 app/google-services.json
+/compose-reports
+/compose-metrics

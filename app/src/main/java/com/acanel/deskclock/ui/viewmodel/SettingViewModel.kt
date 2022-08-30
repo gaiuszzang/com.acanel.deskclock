@@ -95,7 +95,7 @@ class SettingViewModel @Inject constructor(
     }
 
     private fun addOnOffMenu(key: String, title: String, flow: Flow<Boolean>, updateCallback: suspend (Boolean) -> Unit) {
-        uiStateList.add(SettingMenu.SettingOnOffMenu(key, title, false, updateCallback))
+        uiStateList.add(SettingMenu.SettingOnOffMenu(key, title, false) { viewModelScope.launch { updateCallback(it) } })
         viewModelScope.launch {
             flow.collect { value ->
                 val index = uiStateList.indexOfFirst { (it is SettingMenu.SettingOnOffMenu) && (it.key == key) }
@@ -110,7 +110,7 @@ class SettingViewModel @Inject constructor(
                 key, title, defaultValue,
                 dialogState = IntSlideDialogState(
                     false, dialogTitle, defaultValue, valueRange,
-                    onUpdate = onUpdate,
+                    onUpdate = { viewModelScope.launch { onUpdate(it) } },
                     onDismiss = {
                         val (index, prevState) = findState<SettingMenu.SettingIntSlideDialogMenu>(key)
                         uiStateList[index] = prevState.copy(dialogState = prevState.dialogState.copy(isShow = false))
@@ -132,7 +132,10 @@ class SettingViewModel @Inject constructor(
         uiStateList.add(
             SettingMenu.SettingColorPickerDialogMenu(
                 key, title, defaultColor,
-                dialogState = ColorPickerDialogState(false, dialogTitle, defaultColor, onUpdate,
+                dialogState = ColorPickerDialogState(false, dialogTitle, defaultColor,
+                    onUpdate = {
+                        viewModelScope.launch { onUpdate(it) }
+                    },
                     onDismiss = {
                         val (index, prevState) = findState<SettingMenu.SettingColorPickerDialogMenu>(key)
                         uiStateList[index] = prevState.copy(dialogState = prevState.dialogState.copy(isShow = false))
@@ -170,7 +173,13 @@ class SettingViewModel @Inject constructor(
         uiStateList.add(
             SettingMenu.SettingRadioButtonListDialogMenu(
                 key, title, defaultValue, false,
-                dialogState = LazyRadioButtonListDialogState(false, dialogTitle, itemToValue, dialogContentLoadListener, selectedItemListener,
+                dialogState = LazyRadioButtonListDialogState(false, dialogTitle, itemToValue,
+                    loadContent = dialogContentLoadListener,
+                    onSelected = {
+                        viewModelScope.launch {
+                            selectedItemListener(it)
+                        }
+                    },
                     onDismiss = {
                         val (index, prevState) = findState<SettingMenu.SettingRadioButtonListDialogMenu<T>>(key)
                         uiStateList[index] = prevState.copy(dialogState = prevState.dialogState.copy(isShow = false))
@@ -227,7 +236,7 @@ sealed interface SettingMenu {
         override val key: String,
         val title: String,
         val isOn: Boolean,
-        val updateCallback: suspend (Boolean) -> Unit
+        val updateCallback: (Boolean) -> Unit
     ): SettingMenu
     data class SettingIntSlideDialogMenu(
         override val key: String,

@@ -28,19 +28,19 @@ sealed interface LazyRadioButtonListDialogContent<T> {
     ): LazyRadioButtonListDialogContent<T>
 }
 
+@Immutable
 data class LazyRadioButtonListDialogState<T> (
     val isShow: Boolean,
     val title: String,
     val itemToValue: (T) -> String,
     val loadContent: suspend () -> LazyRadioButtonListDialogContent.Loaded<T>,
-    val onSelected: suspend (T) -> Unit,
+    val onSelected: (T) -> Unit,
     val onDismiss: () -> Unit
 )
 
 @Composable
 fun <T> LazyRadioButtonListDialog(
-    state: LazyRadioButtonListDialogState<T>,
-    parentScope: CoroutineScope
+    state: LazyRadioButtonListDialogState<T>
 ) {
     if (!state.isShow) return
     var dialogContent: LazyRadioButtonListDialogContent<T> by remember { mutableStateOf(LazyRadioButtonListDialogContent.Loading()) }
@@ -51,19 +51,19 @@ fun <T> LazyRadioButtonListDialog(
         val loadContent = state.loadContent()
         dialogContent = loadContent
         selectedIndex = loadContent.selectedIndex
-        listState.scrollToItem(selectedIndex)
+        if (selectedIndex in 0 until loadContent.content.size) {
+            listState.scrollToItem(selectedIndex)
+        }
     }
 
     GroovinOkayCancelDialog(
         title = state.title,
         cancelable = true,
         onPositiveClick = {
-            parentScope.launch {
-                if (dialogContent is LazyRadioButtonListDialogContent.Loaded) {
-                    state.onSelected((dialogContent as LazyRadioButtonListDialogContent.Loaded<T>).content[selectedIndex])
-                }
-                state.onDismiss()
+            if (dialogContent is LazyRadioButtonListDialogContent.Loaded) {
+                state.onSelected((dialogContent as LazyRadioButtonListDialogContent.Loaded<T>).content[selectedIndex])
             }
+            state.onDismiss()
         },
         onCancelClick = state.onDismiss
     ) {
