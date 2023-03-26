@@ -23,6 +23,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 /*
  * Interface DI with Singleton Components
@@ -31,15 +32,19 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 abstract class InterfaceDIModule {
     @Binds
+    @Singleton
     abstract fun bindClockRepository(repo: AndroidClockRepository): ClockRepository
 
     @Binds
+    @Singleton
     abstract fun bindClockSettingRepository(repo: AndroidClockSettingRepository): ClockSettingRepository
 
     @Binds
+    @Singleton
     abstract fun bindImageRepository(repo: FbImageRepository): ImageRepository
 
     @Binds
+    @Singleton
     abstract fun bindStringRepository(repo: AndroidStringRepository): StringRepository
 }
 
@@ -54,12 +59,14 @@ private val Context.unsplashSettingDataStore: DataStore<Preferences> by preferen
 @InstallIn(SingletonComponent::class)
 class DataStoreDIModule {
     @Provides
+    @Singleton
     @ClockSettingDataStore
     fun provideClockSettingDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
         return context.clockSettingDataStore
     }
 
     @Provides
+    @Singleton
     @UnsplashSettingDataStore
     fun provideUnsplashSettingDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
         return context.unsplashSettingDataStore
@@ -74,12 +81,14 @@ class DataStoreDIModule {
 @InstallIn(SingletonComponent::class)
 class RoomDBDIModule {
     @Provides
+    @Singleton
     fun provideDeskClockDatabase(@ApplicationContext context: Context): DeskClockDatabase {
         return Room.databaseBuilder(context, DeskClockDatabase::class.java, "DeskClock.db")
             .build()
     }
 
     @Provides
+    @Singleton
     fun provideDeskClockDao(db: DeskClockDatabase): DeskClockDao {
         return db.getDao()
     }
@@ -92,5 +101,6 @@ class RoomDBDIModule {
 @InstallIn(SingletonComponent::class)
 class RetrofitDIModule {
     @Provides
+    @Singleton
     fun provideDeskClockFbService(): DeskClockFbApi = DeskClockFbService.service
 }
