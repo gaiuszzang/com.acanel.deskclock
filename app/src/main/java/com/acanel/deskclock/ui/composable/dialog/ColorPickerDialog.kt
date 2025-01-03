@@ -7,11 +7,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.acanel.deskclock.ui.theme.AppTheme
-import com.acanel.groovin.composable.GroovinOkayCancelDialog
 import com.godaddy.android.colorpicker.ClassicColorPicker
 import com.godaddy.android.colorpicker.HsvColor
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 data class ColorPickerDialogState (
     val isShow: Boolean,

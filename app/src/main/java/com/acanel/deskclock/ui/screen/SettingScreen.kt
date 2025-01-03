@@ -2,26 +2,32 @@ package com.acanel.deskclock.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
-import androidx.compose.material.*
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.acanel.deskclock.ui.LocalNavAction
 import com.acanel.deskclock.ui.composable.dialog.ColorPickerDialogState
 import com.acanel.deskclock.ui.composable.dialog.IntSlideDialogState
 import com.acanel.deskclock.ui.composable.dialog.LazyRadioButtonListDialogContent
 import com.acanel.deskclock.ui.composable.dialog.LazyRadioButtonListDialogState
-import com.acanel.deskclock.ui.composable.setting.*
+import com.acanel.deskclock.ui.composable.setting.SettingColorPickerDialogMenu
+import com.acanel.deskclock.ui.composable.setting.SettingIntSlideDialogMenu
+import com.acanel.deskclock.ui.composable.setting.SettingOnOffMenu
+import com.acanel.deskclock.ui.composable.setting.SettingRadioButtonListDialogMenu
+import com.acanel.deskclock.ui.composable.setting.SettingTitle
+import com.acanel.deskclock.ui.composable.window.ScreenPortrait
 import com.acanel.deskclock.ui.theme.AppTheme
 import com.acanel.deskclock.ui.viewmodel.SettingMenu
 import com.acanel.deskclock.ui.viewmodel.SettingViewModel
-import com.acanel.groovin.composable.ScreenPortrait
 
 @Composable
 fun SettingActivityScreen(
@@ -59,29 +65,27 @@ fun SettingScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingAppBar() {
     val navAction = LocalNavAction.current
     TopAppBar(
-        elevation = 0.dp,
-        modifier = Modifier.height(80.dp)
-    ) {
-        IconButton(
-            modifier = Modifier.align(Alignment.CenterVertically),
-            onClick = {
-                navAction.backAction()
+        title = {
+            Text(text = "Settings")
+        },
+        navigationIcon = {
+            IconButton(
+                onClick = {
+                    navAction.backAction()
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null
+                )
             }
-        ) {
-            Icon(
-                imageVector = Icons.Filled.ArrowBack,
-                contentDescription = null
-            )
         }
-        Text(
-            modifier = Modifier.weight(1f),
-            text = "Settings"
-        )
-    }
+    )
 }
 
 @Preview(showBackground = true)

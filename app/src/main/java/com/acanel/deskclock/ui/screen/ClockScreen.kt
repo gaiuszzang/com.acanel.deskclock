@@ -4,9 +4,10 @@ import android.view.MotionEvent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -31,10 +32,13 @@ import com.acanel.deskclock.ui.LocalNavAction
 import com.acanel.deskclock.ui.composable.clock.ClockSystemMenu
 import com.acanel.deskclock.ui.composable.clock.ClockSystemMenuPosition
 import com.acanel.deskclock.ui.composable.clock.ClockTime
+import com.acanel.deskclock.ui.composable.image.GroovinUrlCrossFadeImage
+import com.acanel.deskclock.ui.composable.window.KeepScreenOn
+import com.acanel.deskclock.ui.composable.window.ScreenImmersive
+import com.acanel.deskclock.ui.composable.window.ScreenLandscape
 import com.acanel.deskclock.ui.theme.DeskClockTheme
 import com.acanel.deskclock.ui.theme.White
 import com.acanel.deskclock.ui.viewmodel.ClockViewModel
-import com.acanel.groovin.composable.*
 
 @Composable
 fun ClockActivityScreen(clockViewModel: ClockViewModel = hiltViewModel()) {
@@ -58,11 +62,13 @@ fun ClockScreen(
     val navAction = LocalNavAction.current
     val animatedVerticalBias by animateFloatAsState(
         targetValue = clockState.displayLocation.verticalBias,
-        animationSpec = tween(durationMillis = 10000, easing = LinearEasing)
+        animationSpec = tween(durationMillis = 10000, easing = LinearEasing),
+        label = "animatedVerticalBias"
     )
     val animatedHorizontalBias by animateFloatAsState(
         targetValue = clockState.displayLocation.horizontalBias,
-        animationSpec = tween(durationMillis = 10000, easing = LinearEasing)
+        animationSpec = tween(durationMillis = 10000, easing = LinearEasing),
+        label = "animatedHorizontalBias"
     )
     ConstraintLayout(
         modifier = Modifier.fillMaxSize()
@@ -175,37 +181,41 @@ private fun ClockBottomMenu(
         val (photoInfo) = createRefs()
         val uriHandler = LocalUriHandler.current
         val photoInfoAnnotatedString = buildAnnotatedString {
-            withStyle(style = SpanStyle(fontSize = 14.sp, color = MaterialTheme.colors.onPrimary)) {
+            withStyle(style = SpanStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onPrimary)) {
                 append("Photo by ")
-                pushStringAnnotation(
-                    tag = "url",
-                    annotation = "$photographerUrl?utm_source=DeskClock&utm_medium=referral"
-                )
-                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                withLink(
+                    LinkAnnotation.Clickable(
+                        tag = "url",
+                        styles = TextLinkStyles(style = SpanStyle(textDecoration = TextDecoration.Underline)),
+                        linkInteractionListener = {
+                            uriHandler.openUri("$photographerUrl?utm_source=DeskClock&utm_medium=referral")
+                        }
+                    )
+                ) {
                     append(photographerName)
                 }
-                pop()
                 append(" on ")
-                pushStringAnnotation(
-                    tag = "url",
-                    annotation = "https://unsplash.com/?utm_source=DeskClock&utm_medium=referral"
-                )
-                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                withLink(
+                    LinkAnnotation.Clickable(
+                        tag = "url",
+                        styles = TextLinkStyles(style = SpanStyle(textDecoration = TextDecoration.Underline)),
+                        linkInteractionListener = {
+                            uriHandler.openUri("https://unsplash.com/?utm_source=DeskClock&utm_medium=referral")
+                        }
+                    )
+                ) {
                     append("Unsplash")
                 }
             }
         }
-        ClickableText(
+        Text(
             modifier = Modifier
                 .constrainAs(photoInfo) {
                     top.linkTo(parent.top)
                     end.linkTo(parent.end)
                 },
-            text = photoInfoAnnotatedString) {
-            photoInfoAnnotatedString.getStringAnnotations("url", it, it).firstOrNull()?.let { annotatedString ->
-                uriHandler.openUri(annotatedString.item)
-            }
-        }
+            text = photoInfoAnnotatedString
+        )
     }
 }
 

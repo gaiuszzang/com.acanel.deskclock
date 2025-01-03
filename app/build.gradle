@@ -1,13 +1,18 @@
+
 plugins {
-    id 'com.android.application'
-    id 'kotlin-android'
-    id 'kotlin-kapt'
-    id 'dagger.hilt.android.plugin'
-    id 'com.google.gms.google-services'
-    id 'com.google.firebase.crashlytics'
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.gms)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.ksp)
 }
 
+
 android {
+    namespace 'com.acanel.deskclock'
     Properties properties = new Properties()
     properties.load(project.rootProject.file('local.properties').newDataInputStream())
     signingConfigs {
@@ -18,14 +23,14 @@ android {
             keyPassword properties.getProperty('SIGNED_KEY_PASSWORD')
         }
     }
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.acanel.deskclock"
         minSdk 24
-        targetSdk 34
-        versionCode 103
-        versionName "1.0.3"
+        targetSdk 35
+        versionCode 104
+        versionName "1.0.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -41,29 +46,22 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
     kotlinOptions {
-        jvmTarget = '1.8'
-        freeCompilerArgs += ["-P",
-                             "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=${rootProject.file(".").absolutePath}/compose-metrics"]
-        freeCompilerArgs += ["-P",
-                             "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=${rootProject.file(".").absolutePath}/compose-reports"]
+        jvmTarget = '21'
     }
     buildFeatures {
         compose true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.3"
     }
     packagingOptions {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
-    applicationVariants.all { variant ->
-        variant.outputs.all {
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
             def flavor = variant.name
             def versionName = variant.versionName
             def formattedDate = new Date().format('yyMMdd')
@@ -73,60 +71,73 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.10.0'
-    implementation "com.google.dagger:hilt-android:$hilt_version"
-    kapt "com.google.dagger:hilt-compiler:$hilt_version"
 
-    def compose_version = "1.5.4"
-    implementation "androidx.compose.ui:ui:$compose_version"
-    implementation "androidx.compose.material:material:$compose_version"
-    implementation "androidx.compose.ui:ui-tooling-preview:$compose_version"
-    implementation 'androidx.activity:activity-compose:1.8.1'
-    def lifecycle_version = "2.6.2"
-    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
-    def navigation_version = "2.7.5"
-    implementation "androidx.navigation:navigation-fragment-ktx:$navigation_version"
-    implementation "androidx.navigation:navigation-ui-ktx:$navigation_version"
-    implementation "androidx.navigation:navigation-compose:$navigation_version"
-    implementation 'androidx.hilt:hilt-navigation-compose:1.1.0'
-    implementation "androidx.constraintlayout:constraintlayout-compose:1.0.1"
-    implementation "com.google.accompanist:accompanist-systemuicontroller:0.17.0"
-    implementation "androidx.datastore:datastore:1.0.0"
-    implementation "androidx.datastore:datastore-preferences:1.0.0"
-    implementation "io.coil-kt:coil-compose:2.5.0"
-    implementation "com.squareup.retrofit2:retrofit:2.9.0"
-    implementation "com.squareup.retrofit2:converter-gson:2.9.0"
-    def okhttp3_version = "4.12.0"
-    implementation "com.squareup.okhttp3:okhttp:$okhttp3_version"
-    implementation platform('com.google.firebase:firebase-bom:29.0.4')
-    implementation 'com.google.firebase:firebase-crashlytics-ktx'
-    implementation 'com.google.firebase:firebase-analytics-ktx'
-    implementation 'com.godaddy.android.colorpicker:compose-color-picker:0.4.2'
-    implementation 'com.godaddy.android.colorpicker:compose-color-picker-android:0.4.2'
+    implementation libs.androidx.appcompat
 
-    def room_version = "2.6.1"
-    implementation "androidx.room:room-runtime:$room_version"
-    implementation "androidx.room:room-ktx:$room_version"
-    kapt "androidx.room:room-compiler:$room_version"
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.lifecycle.runtime.ktx
 
-    implementation name: "groovin-release-0.0.1-alpha02", ext: "aar"
+    implementation platform(libs.androidx.compose.bom)
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.ui
+    implementation libs.androidx.ui.graphics
+    implementation libs.androidx.ui.tooling.preview
+    implementation libs.androidx.material
+    implementation libs.androidx.material3
 
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-    androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
+    implementation libs.hilt.android
+    kapt libs.hilt.compiler
 
-    //for debug
-    //compose
-    debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
 
-    //flipper
+    implementation libs.androidx.lifecycle.livedata.ktx
+    implementation libs.androidx.lifecycle.runtime.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    implementation libs.androidx.lifecycle.viewmodel.compose
+
+    implementation libs.androidx.navigation.fragment.ktx
+    implementation libs.androidx.navigation.ui.ktx
+    implementation libs.androidx.navigation.compose
+    implementation libs.androidx.hilt.navigation.compose
+    implementation libs.androidx.constraintlayout.compose
+
+    implementation libs.androidx.datastore
+    implementation libs.androidx.datastore.preferences
+    implementation libs.coil.compose
+    implementation libs.retrofit
+    implementation libs.retrofit.converter.gson
+    implementation libs.okhttp
+
+    implementation platform(libs.firebase.bom)
+    implementation libs.firebase.crashlytics.ktx
+    implementation libs.firebase.analytics.ktx
+
+
+    implementation libs.androidx.room.runtime
+    implementation libs.androidx.room.ktx
+    ksp libs.androidx.room.compiler
+
+    // 3rd party library
+    implementation libs.godaddy.color.picker
+    implementation libs.godaddy.color.picker.android
+    implementation libs.accompanist.systemuicontroller
+
+
+    // Test
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.junit
+    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation platform(libs.androidx.compose.bom)
+    androidTestImplementation libs.androidx.ui.test.junit4
+
+
+    // Debug
+    debugImplementation libs.androidx.ui.tooling
+    debugImplementation libs.androidx.ui.test.manifest
     debugImplementation 'com.facebook.flipper:flipper:0.172.0'
     debugImplementation 'com.facebook.soloader:soloader:0.10.4'
     debugImplementation 'com.facebook.flipper:flipper-network-plugin:0.172.0'
+}
+
+kapt {
+    correctErrorTypes true
 }

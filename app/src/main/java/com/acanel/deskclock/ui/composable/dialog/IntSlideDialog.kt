@@ -1,10 +1,11 @@
 package com.acanel.deskclock.ui.composable.dialog
 
-import androidx.compose.material.Slider
-import androidx.compose.runtime.*
-import com.acanel.groovin.composable.GroovinOkayCancelDialog
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import androidx.compose.material3.Slider
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 data class IntSlideDialogState(
     val isShow: Boolean,
@@ -20,7 +21,7 @@ fun IntSlideDialog(
     dialogState: IntSlideDialogState
 ) {
     if (!dialogState.isShow) return
-    var sliderPosition by remember { mutableStateOf(dialogState.value.toFloat()) }
+    var sliderPosition by remember { mutableFloatStateOf(dialogState.value.toFloat()) }
     GroovinOkayCancelDialog(
         title = dialogState.title,
         showCancelButton = false,

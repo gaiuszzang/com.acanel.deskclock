@@ -1,19 +1,17 @@
 package com.acanel.deskclock.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.darkColors
-import androidx.compose.material.lightColors
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val LightColorPalette = lightColors(
+private val LightColorPalette = lightColorScheme(
     primary = Primary,
-    primaryVariant = PrimaryVariant,
     onPrimary = OnPrimary,
     secondary = Secondary,
-    secondaryVariant = SecondaryVariant,
     onSecondary = OnSecondary,
     surface = Surface,
     onSurface = OnSurface,
@@ -21,12 +19,10 @@ private val LightColorPalette = lightColors(
     onBackground = OnSurface
 )
 
-private val DarkColorPalette = darkColors(
+private val DarkColorPalette = darkColorScheme(
     primary = DarkPrimary,
-    primaryVariant = DarkPrimaryVariant,
     onPrimary = DarkOnPrimary,
     secondary = DarkSecondary,
-    secondaryVariant = DarkSecondaryVariant,
     onSecondary = DarkOnSecondary,
     surface = DarkSurface,
     onSurface = DarkOnSurface,
@@ -34,12 +30,10 @@ private val DarkColorPalette = darkColors(
     onBackground = DarkOnSurface
 )
 
-private val GroovinClockColorPalette = lightColors(
+private val GroovinClockColorPalette = lightColorScheme(
     primary = Primary,
-    primaryVariant = PrimaryVariant,
     onPrimary = OnPrimary,
     secondary = Secondary,
-    secondaryVariant = SecondaryVariant,
     onSecondary = OnSecondary,
     background = Color.Black,
     surface = Color.Black,
@@ -49,7 +43,7 @@ private val GroovinClockColorPalette = lightColors(
 
 
 @Composable
-fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable() () -> Unit) {
+fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     val colors = if (darkTheme) {
         DarkColorPalette
     } else {
@@ -57,8 +51,7 @@ fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable() 
     }
 
     MaterialTheme(
-        colors = colors,
-        typography = Typography,
+        colorScheme = colors,
         shapes = Shapes,
         content = content
     )
@@ -67,8 +60,7 @@ fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable() 
 @Composable
 fun DeskClockTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colors = GroovinClockColorPalette,
-        typography = Typography,
+        colorScheme = GroovinClockColorPalette,
         shapes = Shapes
     ) {
         Surface(

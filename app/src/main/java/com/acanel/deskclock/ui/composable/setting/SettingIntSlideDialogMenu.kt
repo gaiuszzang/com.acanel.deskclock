@@ -2,7 +2,7 @@ package com.acanel.deskclock.ui.composable.setting
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -12,7 +12,6 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.acanel.deskclock.ui.composable.dialog.IntSlideDialog
 import com.acanel.deskclock.ui.theme.Black
 import com.acanel.deskclock.ui.viewmodel.SettingMenu
-import com.acanel.groovin.composable.GroovinBasicMenuCard
 
 
 @Composable

@@ -1,24 +1,32 @@
 package com.acanel.deskclock.ui.composable.dialog
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.RadioButton
-import androidx.compose.material.RadioButtonDefaults
-import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.acanel.deskclock.ui.theme.Black
-import com.acanel.groovin.composable.GroovinOkayCancelDialog
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 sealed interface LazyRadioButtonListDialogContent<T> {
     class Loading<T>: LazyRadioButtonListDialogContent<T>
@@ -44,7 +52,7 @@ fun <T> LazyRadioButtonListDialog(
 ) {
     if (!state.isShow) return
     var dialogContent: LazyRadioButtonListDialogContent<T> by remember { mutableStateOf(LazyRadioButtonListDialogContent.Loading()) }
-    var selectedIndex by remember { mutableStateOf(0) }
+    var selectedIndex by remember { mutableIntStateOf(0) }
     val listState: LazyListState = rememberLazyListState()
 
     LaunchedEffect(true) {
@@ -90,11 +98,11 @@ fun <T> LazyRadioButtonListDialog(
                                 selected = index == selectedIndex,
                                 onClick = { selectedIndex = index },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = MaterialTheme.colors.primary,
+                                    selectedColor = MaterialTheme.colorScheme.primary,
                                     unselectedColor = Color.LightGray
                                 )
                             )
-                            Text(text = state.itemToValue(item), color = Black)
+                            Text(text = state.itemToValue(item), color = Color.Black)
                         }
                     }
                 }
