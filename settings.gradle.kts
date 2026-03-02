@@ -2,8 +2,8 @@ pluginManagement {
     repositories {
         google {
             content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("com.android.*")
+                includeGroupByRegex("com.google.*")
                 includeGroupByRegex("androidx.*")
             }
         }
@@ -16,12 +16,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        repositories {
-            flatDir {
-                dirs 'app/libs'
-            }
+        flatDir {
+            dirs("app/libs")
         }
     }
 }
 rootProject.name = "DeskClock"
-include ':app'
+include(":app")

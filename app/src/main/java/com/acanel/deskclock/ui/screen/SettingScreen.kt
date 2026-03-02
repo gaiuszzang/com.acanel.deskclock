@@ -1,5 +1,6 @@
 package com.acanel.deskclock.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material3.TopAppBar
@@ -13,7 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.acanel.deskclock.ui.LocalNavAction
 import com.acanel.deskclock.ui.composable.dialog.ColorPickerDialogState
 import com.acanel.deskclock.ui.composable.dialog.IntSlideDialogState
@@ -49,7 +50,7 @@ fun SettingScreen(
     ) {
         SettingAppBar()
         LazyColumn(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().safeDrawingPadding()
         ) {
             //Contents
             this.items(menuList) { menu ->
@@ -62,6 +63,10 @@ fun SettingScreen(
                 }
             }
         }
+    }
+    val navAction = LocalNavAction.current
+    BackHandler {
+        navAction.backAction()
     }
 }
 
